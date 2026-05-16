@@ -7,7 +7,7 @@ import '../../providers/auth_controller.dart';
 import '../../widgets/auth_scaffold.dart';
 import '../../widgets/auth_submit_button.dart';
 import '../../widgets/auth_text_field.dart';
-import '../home/learner_home_screen.dart';
+import '../main_navigation_screen.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -35,17 +35,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     ref.listen<AuthState>(authControllerProvider, (previous, next) {
       if (next.status == AuthStatus.authenticated) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute<void>(
-            builder: (_) => const LearnerHomeScreen(),
-          ),
+          MaterialPageRoute<void>(builder: (_) => const MainNavigationScreen()),
           (_) => false,
         );
       }
 
       if (next.status == AuthStatus.failure && next.errorMessage != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next.errorMessage!)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(next.errorMessage!)));
       }
     });
 
@@ -111,7 +109,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       return;
     }
 
-    ref.read(authControllerProvider.notifier).register(
+    ref
+        .read(authControllerProvider.notifier)
+        .register(
           fullName: _fullNameController.text,
           email: _emailController.text,
           password: _passwordController.text,
@@ -130,9 +130,9 @@ class _LearnerRoleSelector extends StatelessWidget {
         Text(
           'Role',
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: AppColors.textHeadline,
-                fontWeight: FontWeight.w600,
-              ),
+            color: AppColors.textHeadline,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         const SizedBox(height: 8),
         Container(
@@ -149,9 +149,9 @@ class _LearnerRoleSelector extends StatelessWidget {
               Text(
                 'Learner',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textHeadline,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  color: AppColors.textHeadline,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const Spacer(),
               const Icon(Icons.check_circle, color: AppColors.primary),

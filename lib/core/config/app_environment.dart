@@ -1,9 +1,6 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-enum AppFlavor {
-  dev,
-  prod,
-}
+enum AppFlavor { dev, prod }
 
 class AppEnvironment {
   AppEnvironment._();
@@ -33,7 +30,7 @@ class AppEnvironment {
     return _env('API_BASE_URL') ??
         (flavor == AppFlavor.prod
             ? 'https://api.educonnect.et'
-            : 'http://10.0.2.2:5000');
+            : 'http://10.0.2.2:5001');
   }
 
   static Duration get connectTimeout {
