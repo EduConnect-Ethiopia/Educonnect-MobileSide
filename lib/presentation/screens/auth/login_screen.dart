@@ -100,7 +100,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       AuthTextField(
                         controller: _emailController,
                         label: 'Email',
-                        hintText: 'abebe@duck.com',
+                        hintText: 'educonnect@gmail.com',
                         keyboardType: TextInputType.emailAddress,
                         textInputAction: TextInputAction.next,
                         validator: Validators.email,
@@ -132,7 +132,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                                 );
                               },
-                        child: const Text('Create learner account'),
+                        child: const Text("Don't have an account? Sign up"),
                       ),
                     ],
                   ),

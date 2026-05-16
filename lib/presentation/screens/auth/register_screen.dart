@@ -52,7 +52,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     return AuthScaffold(
       title: 'Create account',
-      subtitle: 'Join EduConnect as a learner',
+      subtitle: 'Join EduConnect',
       footer: TextButton(
         onPressed: isLoading ? null : () => Navigator.of(context).pop(),
         child: const Text('Already have an account? Sign in'),
@@ -65,7 +65,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             AuthTextField(
               controller: _fullNameController,
               label: 'Full name',
-              hintText: 'Abebe Bekele',
+              hintText: 'Your full name',
               validator: Validators.fullName,
               textInputAction: TextInputAction.next,
             ),
@@ -73,7 +73,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             AuthTextField(
               controller: _emailController,
               label: 'Email',
-              hintText: 'abebe@duck.com',
+              hintText: 'educonnect@gmail.com',
               keyboardType: TextInputType.emailAddress,
               validator: Validators.email,
               textInputAction: TextInputAction.next,
@@ -89,11 +89,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               textInputAction: TextInputAction.done,
               onFieldSubmitted: (_) => _submit(),
             ),
-            const SizedBox(height: 18),
-            const _LearnerRoleSelector(),
             const SizedBox(height: 28),
             AuthSubmitButton(
-              label: 'Create account',
+              label: 'Sign up',
               icon: Icons.person_add_alt_1_outlined,
               isLoading: isLoading,
               onPressed: _submit,
@@ -116,49 +114,5 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           email: _emailController.text,
           password: _passwordController.text,
         );
-  }
-}
-
-class _LearnerRoleSelector extends StatelessWidget {
-  const _LearnerRoleSelector();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Role',
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: AppColors.textHeadline,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(9),
-            border: Border.all(color: AppColors.primary),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.school_outlined, color: AppColors.primary),
-              const SizedBox(width: 12),
-              Text(
-                'Learner',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textHeadline,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const Spacer(),
-              const Icon(Icons.check_circle, color: AppColors.primary),
-            ],
-          ),
-        ),
-      ],
-    );
   }
 }
