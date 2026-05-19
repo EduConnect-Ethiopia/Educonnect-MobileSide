@@ -1,38 +1,32 @@
 class ApiEndpoints {
   ApiEndpoints._();
 
-  static const register = '/api/auth/register';
-  static const login = '/api/auth/login';
-  static const refreshToken = '/api/auth/refresh-token';
-  static const logout = '/api/auth/logout';
-  static const forgotPassword = '/api/auth/forgot-password';
-  static const resetPassword = '/api/auth/reset-password';
+  static const baseUrl = 'http://10.0.2.2:5001';
+  
+  // Auth endpoints
+  static const signup = '/api/Auth/signup';
+  static const register = signup;
+  static const login = '/api/Auth/login';
+  static const forgotPassword = '/api/Auth/forgot-password';
+  static const verifyResetCode = '/api/Auth/verify-reset-code';
+  static const resetPassword = '/api/Auth/reset-password';
 
-  static const userProfile = '/api/users/profile';
-  static const changePassword = '/api/users/change-password';
-  static const userProgress = '/api/users/progress';
+  // Course endpoints
+  static String course(String courseId) => '/api/Course/$courseId';
+  static String courseModules(String courseId) =>
+      '/api/Course/$courseId/modules';
+  static String moduleLessons(String moduleId) =>
+      '/api/Course/$moduleId/lessons';
+  static String lessonMaterials(String lessonId) =>
+      '/api/Course/$lessonId/materials';
 
-  static const courses = '/api/courses';
-  static const enrolledCourses = '/api/courses/enrolled';
-  static const recommendedCourses = '/api/courses/recommended';
+  // Enrollment endpoints
+  static const enroll = '/api/Enrollment/enroll';
+  static const unenroll = '/api/Enrollment/unenroll';
+  static String learnerEnrollments(String userId) =>
+      '/api/Enrollment/learner/$userId';
 
-  static String course(String id) => '/api/courses/$id';
-  static String courseContent(String id) => '/api/courses/$id/content';
-  static String courseProgress(String id) => '/api/courses/$id/progress';
-  static String enrollCourse(String id) => '/api/courses/$id/enroll';
-
-  static const upcomingAssessments = '/api/assessments/upcoming';
-  static String assessment(String id) => '/api/assessments/$id';
-  static String submitAssessment(String id) => '/api/assessments/$id/submit';
-  static String assessmentResult(String id) => '/api/assessments/$id/result';
-
-  static const certificates = '/api/certificates';
-  static String downloadCertificate(String id) =>
-      '/api/certificates/$id/download';
-  static String verifyCertificate(String code) =>
-      '/api/certificates/verify/$code';
-
-  static const notifications = '/api/notifications';
-  static String readNotification(String id) => '/api/notifications/$id/read';
-  static String notification(String id) => '/api/notifications/$id';
+  // Session endpoints
+  static String courseSessions(String courseId) =>
+      '/api/CourseSession/$courseId';
 }

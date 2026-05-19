@@ -3,8 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/datasources/auth_remote_data_source.dart';
+import '../../data/datasources/course_remote_data_source.dart';
 import '../../data/repositories/auth_repository_impl.dart';
+import '../../data/repositories/course_repository_impl.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../domain/repositories/course_repository.dart';
 import '../network/dio_client.dart';
 import '../storage/token_storage.dart';
 
@@ -30,6 +33,16 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl(
     remoteDataSource: ref.watch(authRemoteDataSourceProvider),
     tokenStorage: ref.watch(tokenStorageProvider),
+  );
+});
+
+final courseRemoteDataSourceProvider = Provider<CourseRemoteDataSource>((ref) {
+  return DioCourseRemoteDataSource(ref.watch(dioProvider));
+});
+
+final courseRepositoryProvider = Provider<CourseRepository>((ref) {
+  return CourseRepositoryImpl(
+    remoteDataSource: ref.watch(courseRemoteDataSourceProvider),
   );
 });
 

@@ -20,16 +20,12 @@ enum AuthStatus {
 }
 
 class AuthState {
-  const AuthState({
-    required this.status,
-    this.session,
-    this.errorMessage,
-  });
+  const AuthState({required this.status, this.session, this.errorMessage});
 
   const AuthState.unknown()
-      : status = AuthStatus.unknown,
-        session = null,
-        errorMessage = null;
+    : status = AuthStatus.unknown,
+      session = null,
+      errorMessage = null;
 
   final AuthStatus status;
   final AuthSession? session;
@@ -58,10 +54,7 @@ class AuthController extends Notifier<AuthState> {
     return const AuthState.unknown();
   }
 
-  Future<void> signIn({
-    required String email,
-    required String password,
-  }) async {
+  Future<void> signIn({required String email, required String password}) async {
     state = state.copyWith(status: AuthStatus.loading);
 
     try {
@@ -139,11 +132,12 @@ class AuthController extends Notifier<AuthState> {
   }
 
   Future<void> _restoreSessionStatus() async {
-    final isAuthenticated = await _repository.isAuthenticated();
+    final session = await _repository.getStoredSession();
     state = AuthState(
-      status: isAuthenticated
-          ? AuthStatus.authenticated
-          : AuthStatus.unauthenticated,
+      status: session == null
+          ? AuthStatus.unauthenticated
+          : AuthStatus.authenticated,
+      session: session,
     );
   }
 
@@ -168,6 +162,10 @@ class AuthController extends Notifier<AuthState> {
       }
 
       return 'Unable to reach EduConnect. Please try again.';
+    }
+
+    if (error is Exception && error.toString().contains('coming soon')) {
+      return 'Password reset is coming soon.';
     }
 
     return 'Something went wrong. Please try again.';

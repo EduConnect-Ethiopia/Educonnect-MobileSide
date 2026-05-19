@@ -6,7 +6,7 @@ import '../../../core/config/app_environment.dart';
 import '../../../core/di/app_providers.dart';
 import '../../../core/widgets/educonnect_loading_indicator.dart';
 import '../auth/login_screen.dart';
-import '../home/learner_home_screen.dart';
+import '../main_navigation_screen.dart';
 
 class SplashScreen extends ConsumerWidget {
   const SplashScreen({super.key});
@@ -23,7 +23,7 @@ class SplashScreen extends ConsumerWidget {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute<void>(
               builder: (_) => isAuthenticated
-                  ? const LearnerHomeScreen()
+                  ? const MainNavigationScreen()
                   : const LoginScreen(),
             ),
           );

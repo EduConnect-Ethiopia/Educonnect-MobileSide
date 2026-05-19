@@ -7,8 +7,7 @@ import '../../../core/utils/validators.dart';
 import '../../providers/auth_controller.dart';
 import '../../widgets/auth_submit_button.dart';
 import '../../widgets/auth_text_field.dart';
-import '../home/learner_home_screen.dart';
-import 'forgot_password_screen.dart';
+import '../main_navigation_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -35,17 +34,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     ref.listen<AuthState>(authControllerProvider, (previous, next) {
       if (next.status == AuthStatus.authenticated) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute<void>(
-            builder: (_) => const LearnerHomeScreen(),
-          ),
+          MaterialPageRoute<void>(builder: (_) => const MainNavigationScreen()),
           (_) => false,
         );
       }
 
       if (next.status == AuthStatus.failure && next.errorMessage != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next.errorMessage!)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(next.errorMessage!)));
       }
     });
 
@@ -86,24 +83,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Text(
                         'Welcome back',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: Colors.black,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 20.sp,
-                            ),
+                          color: Colors.black,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 20.sp,
+                        ),
                       ),
                       SizedBox(height: 4.h),
                       Text(
                         'Please enter your details to sign in',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: const Color(0xFF333333),
-                              fontSize: 12.sp,
-                            ),
+                          color: const Color(0xFF333333),
+                          fontSize: 12.sp,
+                        ),
                       ),
                       SizedBox(height: 33.h),
                       AuthTextField(
                         controller: _emailController,
                         label: 'Email',
-                        hintText: 'abebe@duck.com',
+                        hintText: 'educonnect@gmail.com',
                         keyboardType: TextInputType.emailAddress,
                         textInputAction: TextInputAction.next,
                         validator: Validators.email,
@@ -118,37 +115,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         textInputAction: TextInputAction.done,
                         onFieldSubmitted: (_) => _submit(),
                       ),
-                      SizedBox(height: 4.h),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          style: TextButton.styleFrom(
-                            visualDensity: VisualDensity.compact,
-                            padding: EdgeInsets.zero,
-                            minimumSize: Size(0, 28.h),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          onPressed: isLoading
-                              ? null
-                              : () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute<void>(
-                                      builder: (_) =>
-                                          const ForgotPasswordScreen(),
-                                    ),
-                                  );
-                                },
-                          child: Text(
-                            'Forgot Password?',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 11.sp,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 12.h),
+                      SizedBox(height: 32.h),
                       AuthSubmitButton(
                         label: 'Sign in',
                         isLoading: isLoading,
@@ -165,7 +132,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                                 );
                               },
-                        child: const Text('Create learner account'),
+                        child: const Text("Don't have an account? Sign up"),
                       ),
                     ],
                   ),
@@ -183,7 +150,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
 
-    ref.read(authControllerProvider.notifier).signIn(
+    ref
+        .read(authControllerProvider.notifier)
+        .signIn(
           email: _emailController.text,
           password: _passwordController.text,
         );
