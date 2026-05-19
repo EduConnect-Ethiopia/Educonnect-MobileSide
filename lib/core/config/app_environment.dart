@@ -1,4 +1,8 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'dart:io' show Platform;
+
+// For Flutter Web platform detection
+const bool kIsWeb = bool.fromEnvironment('dart.library.js_util');
 
 enum AppFlavor { dev, prod }
 
@@ -26,11 +30,32 @@ class AppEnvironment {
     return _env('APP_NAME') ?? 'EduConnect Ethiopia';
   }
 
+  /// Returns the appropriate API base URL based on platform and environment
   static String get apiBaseUrl {
-    return _env('API_BASE_URL') ??
-        (flavor == AppFlavor.prod
-            ? 'https://api.educonnect.et'
-            : 'http://10.0.2.2:5001');
+    final envUrl = _env('API_BASE_URL');
+    if (envUrl != null && envUrl.isNotEmpty) {
+      print('[AppEnvironment] Using API URL from .env: $envUrl');
+      return envUrl;
+    }
+
+    if (flavor == AppFlavor.prod) {
+      return 'https://api.educonnect.et';
+    }
+
+    // Development environment - platform-specific URLs
+    String url;
+    if (kIsWeb) {
+      url = 'http://localhost:5001';
+    } else if (Platform.isAndroid) {
+      url = 'http://10.0.2.2:5001';
+    } else if (Platform.isIOS) {
+      url = 'http://127.0.0.1:5001';
+    } else {
+      url = 'http://localhost:5001';
+    }
+
+    print('[AppEnvironment] Platform: ${kIsWeb ? 'Web' : Platform.operatingSystem}, API URL: $url');
+    return url;
   }
 
   static Duration get connectTimeout {
