@@ -15,9 +15,15 @@ class JwtAuthInterceptor extends QueuedInterceptor {
     RequestInterceptorHandler handler,
   ) async {
     final accessToken = _tokenStorage.accessToken;
+    final path = options.path;
 
-    if (accessToken != null && !_isAuthEndpoint(options.path)) {
+    if (_isAuthEndpoint(path)) {
+      print('[JwtAuthInterceptor] 🔓 Auth endpoint detected: $path (no token needed)');
+    } else if (accessToken != null && accessToken.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $accessToken';
+      print('[JwtAuthInterceptor] ✅ Token attached for: $path');
+    } else {
+      print('[JwtAuthInterceptor] ⚠️  No token available for: $path');
     }
 
     handler.next(options);
@@ -28,9 +34,19 @@ class JwtAuthInterceptor extends QueuedInterceptor {
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
-    if (err.response?.statusCode == 401 &&
-        !_isAuthEndpoint(err.requestOptions.path)) {
+    final statusCode = err.response?.statusCode;
+    final path = err.requestOptions.path;
+
+    if (statusCode == 401 && !_isAuthEndpoint(path)) {
+      print('[JwtAuthInterceptor] ❌ 401 Unauthorized for: $path');
+      print('[JwtAuthInterceptor] 🔐 Clearing token storage due to 401 error');
       await _tokenStorage.clear();
+    } else if (err.type == DioExceptionType.connectionTimeout) {
+      print('[JwtAuthInterceptor] ⏱️  Connection timeout: $path');
+    } else if (err.type == DioExceptionType.receiveTimeout) {
+      print('[JwtAuthInterceptor] ⏱️  Receive timeout: $path');
+    } else {
+      print('[JwtAuthInterceptor] 🚨 Error on $path: ${err.message}');
     }
 
     handler.next(err);
