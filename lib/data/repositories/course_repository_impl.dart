@@ -1,5 +1,7 @@
 import '../../core/constants/backend_enum_values.dart';
 import '../../domain/entities/course.dart';
+import '../../domain/entities/course_content.dart';
+import '../../domain/entities/course_session.dart';
 import '../../domain/repositories/course_repository.dart';
 import '../datasources/course_remote_data_source.dart';
 import '../models/course_models.dart';
@@ -17,6 +19,18 @@ class CourseRepositoryImpl implements CourseRepository {
   }
 
   @override
+  Future<List<Course>> getPublishedCourses() async {
+    final courses = await _remoteDataSource.getPublishedCourses();
+    return courses.map((c) => c.toEntity()).toList();
+  }
+
+  @override
+  Future<CourseContent> getCourseContent(String courseId) async {
+    final content = await _remoteDataSource.getCourseContent(courseId);
+    return content.toEntity();
+  }
+
+  @override
   Future<List<Course>> getActiveCoursesForLearner(String userId) async {
     final enrollments = await _remoteDataSource.getLearnerEnrollments(userId);
     final activeEnrollments = enrollments.where(
@@ -30,6 +44,12 @@ class CourseRepositoryImpl implements CourseRepository {
     return courses.whereType<Course>().where((course) {
       return course.isPublished && course.id.isNotEmpty;
     }).toList();
+  }
+
+  @override
+  Future<List<CourseSession>> getCourseSessions(String courseId) async {
+    final sessions = await _remoteDataSource.getCourseSessions(courseId);
+    return sessions.map((s) => s.toEntity()).toList();
   }
 
   Future<Course?> _courseForEnrollment(EnrollmentModel enrollment) async {

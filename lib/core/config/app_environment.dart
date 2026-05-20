@@ -1,8 +1,6 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:io' show Platform;
-
-// For Flutter Web platform detection
-const bool kIsWeb = bool.fromEnvironment('dart.library.js_util');
 
 enum AppFlavor { dev, prod }
 
@@ -32,26 +30,28 @@ class AppEnvironment {
 
   /// Returns the appropriate API base URL based on platform and environment
   static String get apiBaseUrl {
+    // 1. መጀመሪያ በ .env ፋይል ውስጥ የተቀመጠ URL ካለ እሱን ይፈትሻል
     final envUrl = _env('API_BASE_URL');
     if (envUrl != null && envUrl.isNotEmpty) {
       print('[AppEnvironment] Using API URL from .env: $envUrl');
       return envUrl;
     }
 
+    // 2. ፕሮዳክሽን (Prod) ከሆነ የላይቭ ሰርቨር አድራሻውን ይመልሳል
     if (flavor == AppFlavor.prod) {
       return 'https://api.educonnect.et';
     }
 
-    // Development environment - platform-specific URLs
+    // 3. የዴቨሎፕመንት (Dev) አካባቢ ከሆነ እንደየ ታርጌት ፕላትፎርሙ ይመድባል
     String url;
     if (kIsWeb) {
       url = 'http://localhost:5001';
     } else if (Platform.isAndroid) {
-      url = 'http://10.0.2.2:5001';
+      url = 'http://10.0.2.2:5001';   // ለአንድሮይድ አምሳይሌተር (Emulator)
     } else if (Platform.isIOS) {
-      url = 'http://127.0.0.1:5001';
+      url = 'http://127.0.0.1:5001';  // ለ iOS አስሙሌተር (Simulator)
     } else {
-      url = 'http://localhost:5001';
+      url = 'http://localhost:5001';  // ለዴስክቶፕ ወይም ለሌሎች
     }
 
     print('[AppEnvironment] Platform: ${kIsWeb ? 'Web' : Platform.operatingSystem}, API URL: $url');
