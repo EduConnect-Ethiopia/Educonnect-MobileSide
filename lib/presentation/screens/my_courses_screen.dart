@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../providers/enrollment_provider.dart';
 import '../widgets/course_card.dart';
-import 'home_screen.dart';
 
 class MyCoursesScreen extends ConsumerWidget {
   const MyCoursesScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final homeState = ref.watch(homeProvider);
+    final myCoursesAsync = ref.watch(myCoursesProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -18,31 +18,64 @@ class MyCoursesScreen extends ConsumerWidget {
         actions: [
           IconButton(
             tooltip: 'Refresh',
-            onPressed: homeState.isLoading
-                ? null
-                : () => ref.read(homeProvider.notifier).loadData(),
+            onPressed: () => ref.invalidate(myCoursesProvider),
             icon: const Icon(Icons.refresh_outlined),
           ),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () => ref.read(homeProvider.notifier).loadData(),
-        child: homeState.inProgressCourses.isEmpty
-            ? ListView(
-                padding: const EdgeInsets.all(16),
-                children: const [_EmptyCoursesState()],
-              )
-            : ListView.builder(
-                padding: const EdgeInsets.only(bottom: 16),
-                itemCount: homeState.inProgressCourses.length,
-                itemBuilder: (context, index) {
-                  return CourseCard(
-                    course: homeState.inProgressCourses[index],
-                    showProgress: true,
-                  );
-                },
-              ),
+        onRefresh: () {
+          ref.invalidate(myCoursesProvider);
+          return ref.watch(myCoursesProvider.future);
+        },
+        child: myCoursesAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stack) => Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                const SizedBox(height: 16),
+                Text(
+                  'Failed to load your courses.',
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => ref.invalidate(myCoursesProvider),
+                  child: const Text('Try Again'),
+                ),
+              ],
+            ),
+          ),
+          data: (courses) => courses.isEmpty
+              ? ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: const [_EmptyCoursesState()],
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  itemCount: courses.length,
+                  itemBuilder: (context, index) {
+                    return CourseCard(
+                      course: courses[index],
+                      showProgress: true,
+                      onTap: () => _navigateToCourseContent(
+                        context,
+                        courses[index].id,
+                      ),
+                    );
+                  },
+                ),
+        ),
       ),
+    );
+  }
+
+  void _navigateToCourseContent(BuildContext context, String courseId) {
+    // TODO: Navigate to course content/player screen
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Course content coming soon...')),
     );
   }
 }

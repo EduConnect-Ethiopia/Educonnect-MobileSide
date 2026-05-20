@@ -12,7 +12,9 @@ class ApiEndpoints {
   static const resetPassword = '/api/Auth/reset-password';
 
   // Course endpoints
+  static const publishedCourses = '/api/Course/published';
   static String course(String courseId) => '/api/Course/$courseId';
+  static String courseContent(String courseId) => '/api/Course/$courseId/content';
   static String courseModules(String courseId) =>
       '/api/Course/$courseId/modules';
   static String moduleLessons(String moduleId) =>
@@ -23,6 +25,7 @@ class ApiEndpoints {
   // Enrollment endpoints
   static const enroll = '/api/Enrollment/enroll';
   static const unenroll = '/api/Enrollment/unenroll';
+  static const myEnrollments = '/api/Enrollment/me';
   static String learnerEnrollments(String userId) =>
       '/api/Enrollment/learner/$userId';
 

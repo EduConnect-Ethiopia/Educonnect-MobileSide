@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 enum AppFlavor { dev, prod }
@@ -27,10 +28,19 @@ class AppEnvironment {
   }
 
   static String get apiBaseUrl {
-    return _env('API_BASE_URL') ??
-        (flavor == AppFlavor.prod
-            ? 'https://api.educonnect.et'
-            : 'http://10.0.2.2:5001');
+    final envUrl = _env('API_BASE_URL');
+    if (envUrl != null) return envUrl;
+
+    if (flavor == AppFlavor.prod) {
+      return 'https://api.educonnect.et';
+    }
+
+    // Dev environment: use localhost for web, 10.0.2.2 for Android emulator
+    if (kIsWeb) {
+      return 'http://localhost:5001';
+    } else {
+      return 'http://10.0.2.2:5001';
+    }
   }
 
   static Duration get connectTimeout {
