@@ -17,6 +17,11 @@ class JwtAuthInterceptor extends QueuedInterceptor {
     final accessToken = _tokenStorage.accessToken;
     final path = options.path;
 
+    // Add CORS headers for Web
+    options.headers['Access-Control-Allow-Origin'] = '*';
+    options.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+    options.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
+
     if (_isAuthEndpoint(path)) {
       print('[JwtAuthInterceptor] 🔓 Auth endpoint detected: $path (no token needed)');
     } else if (accessToken != null && accessToken.isNotEmpty) {
@@ -45,6 +50,8 @@ class JwtAuthInterceptor extends QueuedInterceptor {
       print('[JwtAuthInterceptor] ⏱️  Connection timeout: $path');
     } else if (err.type == DioExceptionType.receiveTimeout) {
       print('[JwtAuthInterceptor] ⏱️  Receive timeout: $path');
+    } else if (err.type == DioExceptionType.unknown) {
+      print('[JwtAuthInterceptor] 🚨 Network error on $path: ${err.message}');
     } else {
       print('[JwtAuthInterceptor] 🚨 Error on $path: ${err.message}');
     }
@@ -55,6 +62,7 @@ class JwtAuthInterceptor extends QueuedInterceptor {
   bool _isAuthEndpoint(String path) {
     return path == ApiEndpoints.login ||
         path == ApiEndpoints.register ||
-        path == ApiEndpoints.signup;
+        path == ApiEndpoints.signup ||
+        path.contains('/api/Auth');
   }
 }
