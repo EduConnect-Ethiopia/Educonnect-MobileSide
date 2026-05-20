@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'dart:io' show Platform;
 
 enum AppFlavor { dev, prod }
 
@@ -27,20 +28,34 @@ class AppEnvironment {
     return _env('APP_NAME') ?? 'EduConnect Ethiopia';
   }
 
+  /// Returns the appropriate API base URL based on platform and environment
   static String get apiBaseUrl {
+    // 1. መጀመሪያ በ .env ፋይል ውስጥ የተቀመጠ URL ካለ እሱን ይፈትሻል
     final envUrl = _env('API_BASE_URL');
-    if (envUrl != null) return envUrl;
+    if (envUrl != null && envUrl.isNotEmpty) {
+      print('[AppEnvironment] Using API URL from .env: $envUrl');
+      return envUrl;
+    }
 
+    // 2. ፕሮዳክሽን (Prod) ከሆነ የላይቭ ሰርቨር አድራሻውን ይመልሳል
     if (flavor == AppFlavor.prod) {
       return 'https://api.educonnect.et';
     }
 
-    // Dev environment: use localhost for web, 10.0.2.2 for Android emulator
+    // 3. የዴቨሎፕመንት (Dev) አካባቢ ከሆነ እንደየ ታርጌት ፕላትፎርሙ ይመድባል
+    String url;
     if (kIsWeb) {
-      return 'http://localhost:5001';
+      url = 'http://localhost:5001';
+    } else if (Platform.isAndroid) {
+      url = 'http://10.0.2.2:5001';   // ለአንድሮይድ አምሳይሌተር (Emulator)
+    } else if (Platform.isIOS) {
+      url = 'http://127.0.0.1:5001';  // ለ iOS አስሙሌተር (Simulator)
     } else {
-      return 'http://10.0.2.2:5001';
+      url = 'http://localhost:5001';  // ለዴስክቶፕ ወይም ለሌሎች
     }
+
+    print('[AppEnvironment] Platform: ${kIsWeb ? 'Web' : Platform.operatingSystem}, API URL: $url');
+    return url;
   }
 
   static Duration get connectTimeout {

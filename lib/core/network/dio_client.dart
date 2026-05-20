@@ -8,22 +8,44 @@ class DioClient {
   DioClient._();
 
   static Dio create({required TokenStorage tokenStorage}) {
+    final apiBaseUrl = AppEnvironment.apiBaseUrl;
+    
+    print('[DioClient] Initializing Dio with base URL: $apiBaseUrl');
+
     final baseOptions = BaseOptions(
-      baseUrl: AppEnvironment.apiBaseUrl,
+      baseUrl: apiBaseUrl,
       connectTimeout: AppEnvironment.connectTimeout,
       receiveTimeout: AppEnvironment.receiveTimeout,
       contentType: Headers.jsonContentType,
       responseType: ResponseType.json,
-      headers: const {'Accept': Headers.jsonContentType},
+      headers: {
+        'Accept': Headers.jsonContentType,
+        'Content-Type': 'application/json',
+      },
+      // Don't throw on HTTP errors - handle in interceptor
+      validateStatus: (status) {
+        return status != null && status < 600;
+      },
     );
 
     final dio = Dio(baseOptions);
 
+    // Add JWT auth interceptor
     dio.interceptors.add(JwtAuthInterceptor(tokenStorage: tokenStorage));
 
+    // Add logging interceptor in dev mode for debugging
     if (AppEnvironment.isDev) {
       dio.interceptors.add(
-        LogInterceptor(requestBody: true, responseBody: true),
+        LogInterceptor(
+          requestBody: true,
+          responseBody: true,
+          error: true,
+          requestHeader: true,
+          responseHeader: true,
+          logPrint: (obj) {
+            print('[HTTP] $obj');
+          },
+        ),
       );
     }
 
