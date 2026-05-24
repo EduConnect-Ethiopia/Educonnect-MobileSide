@@ -101,7 +101,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> requestPasswordReset(String email) async {
-    throw Exception('Password reset is coming soon.');
+    await _remoteDataSource.requestPasswordReset(email);
   }
 
   @override
@@ -110,7 +110,11 @@ class AuthRepositoryImpl implements AuthRepository {
     required String token,
     required String newPassword,
   }) async {
-    throw Exception('Password reset is coming soon.');
+    await _remoteDataSource.resetPassword(
+      email: email,
+      token: token,
+      newPassword: newPassword,
+    );
   }
 
   AuthSession _toSession(AuthResponse response) {

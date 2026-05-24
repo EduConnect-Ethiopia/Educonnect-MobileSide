@@ -110,6 +110,7 @@ class ModuleModel {
     required this.moduleStatus,
     this.createdAt,
     this.updatedAt,
+    this.lessons = const [],
   });
 
   final String moduleId;
@@ -120,6 +121,7 @@ class ModuleModel {
   final int moduleStatus;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final List<LessonModel> lessons;
 
   factory ModuleModel.fromJson(JsonMap json) {
     final data = findMap(json, const ['data', 'result']) ?? json;
@@ -157,6 +159,7 @@ class LessonModel {
     required this.lessonStatus,
     this.createdAt,
     this.updatedAt,
+    this.materials = const [],
   });
 
   final String lessonId;
@@ -167,6 +170,7 @@ class LessonModel {
   final int lessonStatus;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final List<MaterialModel> materials;
 
   factory LessonModel.fromJson(JsonMap json) {
     final data = findMap(json, const ['data', 'result']) ?? json;
@@ -268,7 +272,7 @@ class CourseContentModel {
       course: CourseModel.fromJson(courseData),
       modules: modulesData
           .whereType<Map<String, dynamic>>()
-          .map((e) => ModuleModel.fromJson(e))
+          .map(ModuleModelJson.fromJsonWithNested)
           .toList(),
     );
   }
@@ -276,7 +280,89 @@ class CourseContentModel {
   CourseContent toEntity() {
     return CourseContent(
       course: course.toEntity(),
-      modules: modules.map((m) => m.toEntity()).toList(),
+      modules: modules.map((m) => m.toEntityWithLessons()).toList(),
+    );
+  }
+}
+
+extension ModuleModelLessons on ModuleModel {
+  Module toEntityWithLessons() {
+    return Module(
+      id: moduleId,
+      courseId: courseId,
+      title: title,
+      description: description,
+      orderIndex: orderIndex,
+      lessons: lessons.map((l) => l.toEntityWithMaterials()).toList(),
+    );
+  }
+}
+
+extension ModuleModelJson on ModuleModel {
+  static ModuleModel fromJsonWithNested(JsonMap json) {
+    final base = ModuleModel.fromJson(json);
+    final lessonsRaw = json['lessons'];
+    if (lessonsRaw is! List) {
+      return base.copyWithLessons(const []);
+    }
+    final lessons = lessonsRaw
+        .whereType<Map<String, dynamic>>()
+        .map(LessonModelJson.fromJsonWithNested)
+        .toList();
+    return base.copyWithLessons(lessons);
+  }
+
+  ModuleModel copyWithLessons(List<LessonModel> lessons) {
+    return ModuleModel(
+      moduleId: moduleId,
+      courseId: courseId,
+      title: title,
+      description: description,
+      orderIndex: orderIndex,
+      moduleStatus: moduleStatus,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      lessons: lessons,
+    );
+  }
+}
+
+extension LessonModelJson on LessonModel {
+  static LessonModel fromJsonWithNested(JsonMap json) {
+    final base = LessonModel.fromJson(json);
+    final materialsRaw = json['materials'];
+    if (materialsRaw is! List) {
+      return base.copyWithMaterials(const []);
+    }
+    final materials = materialsRaw
+        .whereType<Map<String, dynamic>>()
+        .map(MaterialModel.fromJson)
+        .toList();
+    return base.copyWithMaterials(materials);
+  }
+
+  Lesson toEntityWithMaterials() {
+    return Lesson(
+      id: lessonId,
+      moduleId: moduleId,
+      title: title,
+      summary: summary,
+      orderIndex: orderIndex,
+      materials: materials.map((m) => m.toEntity()).toList(),
+    );
+  }
+
+  LessonModel copyWithMaterials(List<MaterialModel> materials) {
+    return LessonModel(
+      lessonId: lessonId,
+      moduleId: moduleId,
+      title: title,
+      summary: summary,
+      orderIndex: orderIndex,
+      lessonStatus: lessonStatus,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      materials: materials,
     );
   }
 }

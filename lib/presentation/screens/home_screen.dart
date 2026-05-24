@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/di/app_providers.dart';
-import '../../data/mock/mock_courses.dart';
 import '../../domain/entities/course.dart';
+import '../providers/recommendation_provider.dart';
 import '../../domain/entities/auth_session.dart';
 import '../widgets/continue_learning_card.dart';
 import '../widgets/course_card.dart';
@@ -32,17 +32,24 @@ class HomeController extends Notifier<HomeState> {
                 .read(courseRepositoryProvider)
                 .getActiveCoursesForLearner(user.id);
 
+      List<Course> recommendations = const [];
+      try {
+        recommendations =
+            await ref.read(recommendationRepositoryProvider).getRecommendations();
+      } on Object {
+        recommendations = const [];
+      }
+
       state = state.copyWith(
         isLoading: false,
         user: user,
         inProgressCourses: inProgressCourses,
-        recommendations: mockRecommendedCourses(),
+        recommendations: recommendations,
         clearError: true,
       );
     } on Object {
       state = state.copyWith(
         isLoading: false,
-        recommendations: mockRecommendedCourses(),
         errorMessage: 'Unable to load your courses right now.',
       );
     }
@@ -159,7 +166,14 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   const SectionHeader(title: 'Recommended for You'),
                   ...homeState.recommendations.map(
-                    (course) => CourseCard(course: course),
+                    (course) => CourseCard(
+                      course: course,
+                      onTap: () {
+                        ref
+                            .read(recommendationControllerProvider)
+                            .trackView(course.id, category: course.category);
+                      },
+                    ),
                   ),
                   const SizedBox(height: 20),
                 ],

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../providers/notification_provider.dart';
+import '../widgets/offline_banner.dart';
 import 'browse_screen.dart';
-import 'cart_screen.dart';
+import 'cart/cart_screen.dart';
 import 'home_screen.dart';
-import 'my_courses_screen.dart';
+import 'my_courses/my_courses_screen.dart';
 import 'profile_screen.dart';
 
 class MainNavigationScreen extends ConsumerStatefulWidget {
@@ -18,6 +20,14 @@ class MainNavigationScreen extends ConsumerStatefulWidget {
 class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
   int _selectedIndex = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(notificationControllerProvider.notifier).loadNotifications();
+    });
+  }
+
   static const List<Widget> _screens = [
     HomeScreen(),
     MyCoursesScreen(),
@@ -29,7 +39,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: _screens),
+      body: OfflineBanner(
+        child: IndexedStack(index: _selectedIndex, children: _screens),
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {

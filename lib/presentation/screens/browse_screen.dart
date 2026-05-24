@@ -2,16 +2,59 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/utils/search_debouncer.dart';
 import '../../domain/entities/course.dart';
 import '../providers/published_courses_provider.dart';
+import '../providers/recommendation_provider.dart';
 import '../widgets/section_header.dart';
+import 'course_detail_screen.dart';
 
-class BrowseScreen extends ConsumerWidget {
+class BrowseScreen extends ConsumerStatefulWidget {
   const BrowseScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<BrowseScreen> createState() => _BrowseScreenState();
+}
+
+class _BrowseScreenState extends ConsumerState<BrowseScreen> {
+  final _searchController = TextEditingController();
+  final _debouncer = SearchDebouncer();
+  String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    _debouncer.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    _debouncer.run(() {
+      if (!mounted) return;
+      setState(() => _query = _searchController.text.trim().toLowerCase());
+    });
+  }
+
+  List<Course> _filterCourses(List<Course> courses) {
+    if (_query.isEmpty) return courses;
+    return courses.where((course) {
+      return course.title.toLowerCase().contains(_query) ||
+          course.description.toLowerCase().contains(_query) ||
+          course.category.toLowerCase().contains(_query);
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(publishedCoursesControllerProvider);
+    final filtered = _filterCourses(state.courses);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Browse Courses')),
@@ -24,17 +67,16 @@ class BrowseScreen extends ConsumerWidget {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: TextField(
-                  enabled: false,
+                  controller: _searchController,
                   decoration: InputDecoration(
                     hintText: 'Search courses',
                     prefixIcon: const Icon(Icons.search_outlined),
-                    suffixIcon: Tooltip(
-                      message: 'Search coming soon',
-                      child: Icon(
-                        Icons.info_outline,
-                        color: AppColors.textSubtitle.withValues(alpha: 0.7),
-                      ),
-                    ),
+                    suffixIcon: _query.isEmpty
+                        ? null
+                        : IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () => _searchController.clear(),
+                          ),
                   ),
                 ),
               ),
@@ -48,9 +90,13 @@ class BrowseScreen extends ConsumerWidget {
               ),
             if (state.isLoading && state.courses.isEmpty)
               const SliverToBoxAdapter(child: LinearProgressIndicator()),
-            if (state.courses.isNotEmpty) ...[
-              const SliverToBoxAdapter(
-                child: SectionHeader(title: 'Available Courses'),
+            if (filtered.isNotEmpty) ...[
+              SliverToBoxAdapter(
+                child: SectionHeader(
+                  title: _query.isEmpty
+                      ? 'Available Courses'
+                      : 'Results (${filtered.length})',
+                ),
               ),
               SliverGrid(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -61,10 +107,10 @@ class BrowseScreen extends ConsumerWidget {
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
-                    final course = state.courses[index];
+                    final course = filtered[index];
                     return _CourseGridCard(course: course);
                   },
-                  childCount: state.courses.length,
+                  childCount: filtered.length,
                 ),
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 16)),
@@ -74,10 +120,12 @@ class BrowseScreen extends ConsumerWidget {
                   padding: const EdgeInsets.all(16),
                   child: Center(
                     child: Text(
-                      'No courses available yet.',
+                      _query.isEmpty
+                          ? 'No courses available yet.'
+                          : 'No courses match your search.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSubtitle,
-                      ),
+                            color: AppColors.textSubtitle,
+                          ),
                     ),
                   ),
                 ),
@@ -99,7 +147,16 @@ class _CourseGridCard extends ConsumerWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => _navigateToCourseDetail(context, course),
+        onTap: () {
+          ref
+              .read(recommendationControllerProvider)
+              .trackView(course.id, category: course.category);
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => CourseDetailScreen(course: course),
+            ),
+          );
+        },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -124,9 +181,9 @@ class _CourseGridCard extends ConsumerWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: AppColors.textHeadline,
-                        fontWeight: FontWeight.w700,
-                      ),
+                            color: AppColors.textHeadline,
+                            fontWeight: FontWeight.w700,
+                          ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -134,50 +191,48 @@ class _CourseGridCard extends ConsumerWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSubtitle,
-                      ),
+                            color: AppColors.textSubtitle,
+                          ),
                     ),
                     const Spacer(),
-                    Row(
-                      children: [
-                        if (course.isFree)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.secondary.withValues(alpha: 0.14),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              'Free',
-                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                color: AppColors.secondary,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          )
-                        else
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.14),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              '${course.price.toStringAsFixed(0)} ETB',
-                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
+                    if (course.isFree)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.secondary.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'Free',
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: AppColors.secondary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                        ),
+                      )
+                    else
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '${course.price.toStringAsFixed(0)} ETB',
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -185,14 +240,6 @@ class _CourseGridCard extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
-
-  void _navigateToCourseDetail(BuildContext context, Course course) {
-    // Navigate to course detail screen
-    // TODO: Implement navigation to CourseDetailScreen
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Opening ${course.title}...')),
     );
   }
 }

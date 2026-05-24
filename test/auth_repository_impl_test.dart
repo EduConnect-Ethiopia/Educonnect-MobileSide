@@ -81,4 +81,14 @@ class _FakeAuthRemoteDataSource implements AuthRemoteDataSource {
   Future<void> register(RegisterRequest request) async {
     registeredEmail = request.email;
   }
+
+  @override
+  Future<void> requestPasswordReset(String email) async {}
+
+  @override
+  Future<void> resetPassword({
+    required String email,
+    required String token,
+    required String newPassword,
+  }) async {}
 }

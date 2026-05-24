@@ -13,6 +13,8 @@ class Course {
     this.thumbnailUrl,
     this.progress = 0,
     this.enrolledAt,
+    this.enrollmentId,
+    this.enrollmentStatus,
   });
 
   final String id;
@@ -26,14 +28,27 @@ class Course {
   final String? thumbnailUrl;
   final double progress;
   final DateTime? enrolledAt;
+  final String? enrollmentId;
+  final int? enrollmentStatus;
 
   bool get isFree => price <= 0;
+
+  bool get isEnrollmentCompleted =>
+      enrollmentStatus == BackendEnumValues.enrollmentCompleted;
+
+  bool get isEnrollmentDropped =>
+      enrollmentStatus == BackendEnumValues.enrollmentDropped;
 
   bool get isPublished => status == BackendEnumValues.courseStatusPublished;
 
   bool get isInstructorLed => mode == BackendEnumValues.modeInstructorLed;
 
-  Course copyWith({double? progress, DateTime? enrolledAt}) {
+  Course copyWith({
+    double? progress,
+    DateTime? enrolledAt,
+    String? enrollmentId,
+    int? enrollmentStatus,
+  }) {
     return Course(
       id: id,
       title: title,
@@ -46,6 +61,8 @@ class Course {
       thumbnailUrl: thumbnailUrl,
       progress: progress ?? this.progress,
       enrolledAt: enrolledAt ?? this.enrolledAt,
+      enrollmentId: enrollmentId ?? this.enrollmentId,
+      enrollmentStatus: enrollmentStatus ?? this.enrollmentStatus,
     );
   }
 }

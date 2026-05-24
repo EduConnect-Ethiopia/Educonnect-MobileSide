@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../domain/entities/course.dart';
 import '../../domain/entities/course_content.dart';
 import '../../domain/entities/course_session.dart';
+import '../providers/cart_provider.dart';
 import '../providers/course_detail_provider.dart';
 import '../providers/enrollment_provider.dart';
+import 'courses/course_player_screen.dart';
 
 class CourseDetailScreen extends ConsumerWidget {
   const CourseDetailScreen({required this.course, super.key});
@@ -51,12 +54,11 @@ class CourseDetailScreen extends ConsumerWidget {
               // Course Header
               _CourseHeader(course: course),
 
-              // Enrollment Button
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: _EnrollButton(
+                child: _CourseActions(
                   course: course,
-                  onEnroll: () => _handleEnrollment(context, enrollmentState),
+                  enrollmentState: enrollmentState,
                 ),
               ),
 
@@ -72,7 +74,11 @@ class CourseDetailScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 16),
                     ...content.modules.map((module) {
-                      return _ModuleListTile(module: module);
+                      return _ModuleListTile(
+                        module: module,
+                        course: course,
+                        content: content,
+                      );
                     }),
                   ],
                 ),
@@ -121,58 +127,79 @@ class CourseDetailScreen extends ConsumerWidget {
     );
   }
 
-  void _handleEnrollment(
-    BuildContext context,
-    EnrollmentState enrollmentState,
-  ) {
-    if (course.price > 0) {
-      _showEnrollmentDialog(context);
-    } else {
-      _performEnroll();
-    }
-  }
+}
 
-  void _showEnrollmentDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Enroll in Course'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Course: ${course.title}'),
-            const SizedBox(height: 8),
-            Text(
-              'Price: ${course.price.toStringAsFixed(0)} ETB',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: AppColors.primary,
-                fontWeight: FontWeight.bold,
-              ),
+class _CourseActions extends ConsumerWidget {
+  const _CourseActions({
+    required this.course,
+    required this.enrollmentState,
+  });
+
+  final Course course;
+  final EnrollmentState enrollmentState;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Column(
+      children: [
+        if (!course.isFree) ...[
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () async {
+                await ref.read(cartControllerProvider.notifier).addToCart(course);
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Added to cart')),
+                );
+              },
+              icon: const Icon(Icons.shopping_cart_outlined),
+              label: const Text('Add to Cart'),
             ),
-            const SizedBox(height: 16),
-            const Text('Payment integration coming soon. For now, click "Proceed" to mock enrollment.'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              _performEnroll();
-            },
-            child: const Text('Proceed'),
-          ),
+          const SizedBox(height: 8),
         ],
-      ),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: enrollmentState.isEnrolling
+                ? null
+                : () async {
+                    if (course.price > 0 && !course.isFree) {
+                      await ref
+                          .read(cartControllerProvider.notifier)
+                          .addToCart(course);
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Added to cart — proceed to checkout'),
+                        ),
+                      );
+                      return;
+                    }
+                    await ref
+                        .read(enrollmentControllerProvider.notifier)
+                        .enrollCourse(course.id);
+                    if (!context.mounted) return;
+                    final msg = ref.read(enrollmentControllerProvider).successMessage;
+                    if (msg != null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(msg)),
+                      );
+                    }
+                  },
+            icon: enrollmentState.isEnrolling
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.add_circle_outline),
+            label: Text(course.isFree ? 'Enroll Free' : 'Buy / Enroll'),
+          ),
+        ),
+      ],
     );
-  }
-
-  void _performEnroll() {
-    // Enrollment will be handled by the provider
   }
 }
 
@@ -220,35 +247,16 @@ class _CourseHeader extends StatelessWidget {
   }
 }
 
-class _EnrollButton extends StatelessWidget {
-  const _EnrollButton({
+class _ModuleListTile extends StatefulWidget {
+  const _ModuleListTile({
+    required this.module,
     required this.course,
-    required this.onEnroll,
+    required this.content,
   });
 
-  final Course course;
-  final VoidCallback onEnroll;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: onEnroll,
-        icon: const Icon(Icons.add_circle_outline),
-        label: const Text('Enroll Now'),
-        style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-        ),
-      ),
-    );
-  }
-}
-
-class _ModuleListTile extends StatefulWidget {
-  const _ModuleListTile({required this.module});
-
   final Module module;
+  final Course course;
+  final CourseContent content;
 
   @override
   State<_ModuleListTile> createState() => _ModuleListTileState();
@@ -274,26 +282,23 @@ class _ModuleListTileState extends State<_ModuleListTile> {
         ),
         children: [
           ...widget.module.lessons.map((lesson) {
-            return Padding(
-              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    lesson.title,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
+            return ListTile(
+              dense: true,
+              title: Text(lesson.title),
+              subtitle: Text('${lesson.materials.length} materials'),
+              trailing: const Icon(Icons.play_circle_outline, size: 20),
+              onTap: () {
+                final enrollmentId = widget.course.enrollmentId ?? 'local';
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => CoursePlayerScreen(
+                      course: widget.course,
+                      enrollmentId: enrollmentId,
+                      initialLesson: lesson,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${lesson.materials.length} materials',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppColors.textSubtitle,
-                    ),
-                  ),
-                ],
-              ),
+                );
+              },
             );
           }),
           const SizedBox(height: 8),
@@ -361,7 +366,7 @@ class _SessionCard extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () => _openMeetingUrl(session.meetingUrl),
+                onPressed: () async => _openMeetingUrl(session.meetingUrl),
                 icon: const Icon(Icons.video_call_outlined, size: 18),
                 label: const Text('Join Session'),
                 style: ElevatedButton.styleFrom(
@@ -386,14 +391,11 @@ class _SessionCard extends StatelessWidget {
     return '${dateTime.day}/${dateTime.month}/${dateTime.year} at ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 
-  void _openMeetingUrl(String meetingUrl) {
-    if (meetingUrl.isEmpty) {
-      return;
+  Future<void> _openMeetingUrl(String meetingUrl) async {
+    if (meetingUrl.isEmpty) return;
+    final uri = Uri.parse(meetingUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
-    // For now, show the URL. Later integrate with url_launcher package
-    // final url = Uri.parse(meetingUrl);
-    // if (await canLaunchUrl(url)) {
-    //   await launchUrl(url, mode: LaunchMode.externalApplication);
-    // }
   }
 }

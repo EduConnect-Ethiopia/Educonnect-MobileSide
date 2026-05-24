@@ -16,7 +16,13 @@ final myCoursesProvider = FutureProvider<List<Course>>((ref) async {
     if (enrollment.isActive) {
       try {
         final course = await ref.read(courseRepositoryProvider).getCourseById(enrollment.courseId);
-        courses.add(course.copyWith(enrolledAt: enrollment.enrolledAt));
+        courses.add(
+          course.copyWith(
+            enrolledAt: enrollment.enrolledAt,
+            enrollmentId: enrollment.id,
+            enrollmentStatus: enrollment.status,
+          ),
+        );
       } catch (_) {
         // Skip courses that fail to load
       }

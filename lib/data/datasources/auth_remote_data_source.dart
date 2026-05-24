@@ -8,6 +8,14 @@ abstract class AuthRemoteDataSource {
   Future<AuthResponse> login(LoginRequest request);
 
   Future<void> register(RegisterRequest request);
+
+  Future<void> requestPasswordReset(String email);
+
+  Future<void> resetPassword({
+    required String email,
+    required String token,
+    required String newPassword,
+  });
 }
 
 class DioAuthRemoteDataSource implements AuthRemoteDataSource {
@@ -28,5 +36,29 @@ class DioAuthRemoteDataSource implements AuthRemoteDataSource {
   @override
   Future<void> register(RegisterRequest request) async {
     await _dio.post<dynamic>(ApiEndpoints.register, data: request.toJson());
+  }
+
+  @override
+  Future<void> requestPasswordReset(String email) async {
+    await _dio.post<dynamic>(
+      ApiEndpoints.forgotPassword,
+      data: {'email': email.trim()},
+    );
+  }
+
+  @override
+  Future<void> resetPassword({
+    required String email,
+    required String token,
+    required String newPassword,
+  }) async {
+    await _dio.post<dynamic>(
+      ApiEndpoints.resetPassword,
+      data: {
+        'email': email.trim(),
+        'token': token.trim(),
+        'newPassword': newPassword,
+      },
+    );
   }
 }
