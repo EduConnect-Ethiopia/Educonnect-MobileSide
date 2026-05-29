@@ -13,6 +13,7 @@ class ApiEndpoints {
 
   // Course
   static const publishedCourses = '/api/Course/published';
+  static const courseSearch = '/api/Course/search';
   static String course(String courseId) => '/api/Course/$courseId';
   static String courseContent(String courseId) => '/api/Course/$courseId/content';
   static String courseModules(String courseId) =>
@@ -21,6 +22,8 @@ class ApiEndpoints {
       '/api/Course/$moduleId/lessons';
   static String lessonMaterials(String lessonId) =>
       '/api/Course/$lessonId/materials';
+  static String materialAccess(String materialId) =>
+      '/api/files/materials/$materialId/access';
 
   // Enrollment
   static const enroll = '/api/Enrollment/enroll';

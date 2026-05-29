@@ -32,5 +32,5 @@ extension LessonPlayTypeExtension on Lesson {
   }
 
   bool get hasAttachments =>
-      materials.any((m) => m.isFile && m.fullContentUrl.isNotEmpty);
+      materials.any((m) => m.isFile);
 }

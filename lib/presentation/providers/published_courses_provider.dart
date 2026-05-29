@@ -19,11 +19,13 @@ class PublishedCoursesController extends Notifier<PublishedCoursesState> {
     return PublishedCoursesState.initial();
   }
 
-  Future<void> loadCourses() async {
+  Future<void> loadCourses({String query = ''}) async {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      final courses = await ref.read(courseRepositoryProvider).getPublishedCourses();
+      final courses = query.isEmpty
+          ? await ref.read(courseRepositoryProvider).getPublishedCourses()
+          : await ref.read(courseRepositoryProvider).searchCourses(query);
       state = state.copyWith(
         isLoading: false,
         courses: courses,

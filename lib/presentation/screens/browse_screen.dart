@@ -38,29 +38,22 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
   void _onSearchChanged() {
     _debouncer.run(() {
       if (!mounted) return;
-      setState(() => _query = _searchController.text.trim().toLowerCase());
+      final query = _searchController.text.trim();
+      setState(() => _query = query);
+      ref.read(publishedCoursesControllerProvider.notifier).loadCourses(query: query);
     });
-  }
-
-  List<Course> _filterCourses(List<Course> courses) {
-    if (_query.isEmpty) return courses;
-    return courses.where((course) {
-      return course.title.toLowerCase().contains(_query) ||
-          course.description.toLowerCase().contains(_query) ||
-          course.category.toLowerCase().contains(_query);
-    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(publishedCoursesControllerProvider);
-    final filtered = _filterCourses(state.courses);
+    final courses = state.courses;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Browse Courses')),
       body: RefreshIndicator(
         onRefresh: () =>
-            ref.read(publishedCoursesControllerProvider.notifier).loadCourses(),
+            ref.read(publishedCoursesControllerProvider.notifier).loadCourses(query: _query),
         child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(
@@ -90,12 +83,12 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
               ),
             if (state.isLoading && state.courses.isEmpty)
               const SliverToBoxAdapter(child: LinearProgressIndicator()),
-            if (filtered.isNotEmpty) ...[
+            if (courses.isNotEmpty) ...[
               SliverToBoxAdapter(
                 child: SectionHeader(
                   title: _query.isEmpty
                       ? 'Available Courses'
-                      : 'Results (${filtered.length})',
+                      : 'Results (${courses.length})',
                 ),
               ),
               SliverGrid(
@@ -107,10 +100,10 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
-                    final course = filtered[index];
+                    final course = courses[index];
                     return _CourseGridCard(course: course);
                   },
-                  childCount: filtered.length,
+                  childCount: courses.length,
                 ),
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 16)),
