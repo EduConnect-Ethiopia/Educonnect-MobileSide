@@ -83,17 +83,13 @@ class _FakeAuthRemoteDataSource implements AuthRemoteDataSource {
   }
 
   @override
-  Future<void> requestPasswordReset(String email) async {}
+  Future<void> requestPasswordReset(ForgotPasswordRequest request) async {}
 
   @override
-  Future<void> resetPassword({
-    required String email,
-    required String token,
-    required String newPassword,
-  }) async {}
+  Future<void> resetPassword(ResetPasswordRequest request) async {}
 
   @override
-  Future<void> requestEmailVerification(String email) async {}
+  Future<void> requestEmailVerification(ForgotPasswordRequest request) async {}
 
   @override
   Future<void> confirmEmailVerification({
@@ -102,5 +98,5 @@ class _FakeAuthRemoteDataSource implements AuthRemoteDataSource {
   }) async {}
 
   @override
-  Future<void> resendEmailVerification(String email) async {}
+  Future<void> resendEmailVerification(ForgotPasswordRequest request) async {}
 }

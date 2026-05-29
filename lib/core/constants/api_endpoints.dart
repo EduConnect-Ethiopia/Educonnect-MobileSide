@@ -10,17 +10,15 @@ class ApiEndpoints {
     static const requestEmailVerification = '/api/Auth/verify/request';
     static const confirmEmailVerification = '/api/Auth/verify/confirm';
     static const resendEmailVerification = '/api/Auth/verify/resend';
-
-  // Course
-  static const publishedCourses = '/api/Course/published';
-  static String course(String courseId) => '/api/Course/$courseId';
-  static String courseContent(String courseId) => '/api/Course/$courseId/content';
-  static String courseModules(String courseId) =>
-      '/api/Course/$courseId/modules';
-  static String moduleLessons(String moduleId) =>
-      '/api/Course/$moduleId/lessons';
-  static String lessonMaterials(String lessonId) =>
-      '/api/Course/$lessonId/materials';
+    // Course
+    static const publishedCourses = '/api/Course/featured';
+    static const searchCourses = '/api/Course/search';
+    static String course(String courseId) => '/api/Course/$courseId';
+    static String courseContent(String courseId) => '/api/Course/$courseId/content';
+    static String courseModules(String courseId) => '/api/Course/$courseId/modules';
+    static String moduleLessons(String moduleId) => '/api/Course/$moduleId/lessons';
+    static String lessonMaterials(String lessonId) => '/api/Course/$lessonId/materials';
+    static String materialAccess(String materialId) => '/api/files/materials/$materialId/access';
 
   // Enrollment
   static const enroll = '/api/Enrollment/enroll';

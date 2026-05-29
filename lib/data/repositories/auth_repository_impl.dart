@@ -8,8 +8,8 @@ class AuthRepositoryImpl implements AuthRepository {
   const AuthRepositoryImpl({
     required AuthRemoteDataSource remoteDataSource,
     required TokenStorage tokenStorage,
-  }) : _remoteDataSource = remoteDataSource,
-       _tokenStorage = tokenStorage;
+  })  : _remoteDataSource = remoteDataSource,
+        _tokenStorage = tokenStorage;
 
   final AuthRemoteDataSource _remoteDataSource;
   final TokenStorage _tokenStorage;
@@ -57,14 +57,10 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<AuthSession?> getStoredSession() async {
-    if (!_tokenStorage.hasValidSession) {
-      return null;
-    }
+    if (!_tokenStorage.hasValidSession) return null;
 
     final accessToken = _tokenStorage.accessToken;
-    if (accessToken == null || accessToken.isEmpty) {
-      return null;
-    }
+    if (accessToken == null || accessToken.isEmpty) return null;
 
     final user = await getCurrentUser();
     return AuthSession(
@@ -78,21 +74,13 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<AuthenticatedUser?> getCurrentUser() async {
     final user = _tokenStorage.user;
-    if (user == null) {
-      return null;
-    }
+    if (user == null) return null;
 
-    return AuthenticatedUser(
-      id: user.id,
-      email: user.email,
-      fullName: user.fullName,
-    );
+    return AuthenticatedUser(id: user.id, email: user.email, fullName: user.fullName);
   }
 
   @override
-  Future<String?> getAccessToken() async {
-    return _tokenStorage.accessToken;
-  }
+  Future<String?> getAccessToken() async => _tokenStorage.accessToken;
 
   @override
   Future<void> refreshToken() async {
@@ -101,7 +89,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> requestPasswordReset(String email) async {
-    await _remoteDataSource.requestPasswordReset(email);
+    await _remoteDataSource.requestPasswordReset(ForgotPasswordRequest(email: email));
   }
 
   @override
@@ -111,15 +99,13 @@ class AuthRepositoryImpl implements AuthRepository {
     required String newPassword,
   }) async {
     await _remoteDataSource.resetPassword(
-      email: email,
-      token: token,
-      newPassword: newPassword,
+      ResetPasswordRequest(email: email, token: token, newPassword: newPassword),
     );
   }
 
   @override
   Future<void> requestEmailVerification(String email) async {
-    await _remoteDataSource.requestEmailVerification(email);
+    await _remoteDataSource.requestEmailVerification(ForgotPasswordRequest(email: email));
   }
 
   @override
@@ -127,15 +113,12 @@ class AuthRepositoryImpl implements AuthRepository {
     required String email,
     required String code,
   }) async {
-    await _remoteDataSource.confirmEmailVerification(
-      email: email,
-      code: code,
-    );
+    await _remoteDataSource.confirmEmailVerification(email: email, code: code);
   }
 
   @override
   Future<void> resendEmailVerification(String email) async {
-    await _remoteDataSource.resendEmailVerification(email);
+    await _remoteDataSource.resendEmailVerification(ForgotPasswordRequest(email: email));
   }
 
   AuthSession _toSession(AuthResponse response) {
@@ -147,11 +130,7 @@ class AuthRepositoryImpl implements AuthRepository {
       expiresAt: response.tokens.expiresAt,
       user: user == null
           ? null
-          : AuthenticatedUser(
-              id: user.id,
-              email: user.email,
-              fullName: user.fullName,
-            ),
+          : AuthenticatedUser(id: user.id, email: user.email, fullName: user.fullName),
     );
   }
 }
