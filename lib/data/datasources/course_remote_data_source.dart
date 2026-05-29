@@ -41,8 +41,24 @@ class DioCourseRemoteDataSource implements CourseRemoteDataSource {
 
   @override
   Future<CourseContentModel> getCourseContent(String courseId) async {
-    final response = await _dio.get<dynamic>(ApiEndpoints.courseContent(courseId));
-    return CourseContentModel.fromJson(castJsonMap(_unwrapApiData(response.data)));
+    try {
+      final response = await _dio.get<dynamic>(
+        ApiEndpoints.courseContent(courseId),
+      );
+      final data = _unwrapApiData(response.data);
+      if (data is Map<String, dynamic>) {
+        final model = CourseContentModel.fromJson(castJsonMap(data));
+        if (model.modules.isNotEmpty) {
+          return model;
+        }
+      }
+    } on DioException catch (error) {
+      if (error.response?.statusCode != 404) {
+        rethrow;
+      }
+    }
+
+    return _buildCourseContentFromModules(courseId);
   }
 
   @override
@@ -75,6 +91,74 @@ class DioCourseRemoteDataSource implements CourseRemoteDataSource {
     return data
         .whereType<Map<String, dynamic>>()
         .map(CourseSessionModel.fromJson)
+        .toList();
+  }
+
+  Future<CourseContentModel> _buildCourseContentFromModules(
+    String courseId,
+  ) async {
+    final courseResponse = await _dio.get<dynamic>(
+      ApiEndpoints.course(courseId),
+    );
+    final courseData = _unwrapApiData(courseResponse.data);
+    final courseModel = CourseModel.fromJson(castJsonMap(courseData));
+
+    final modules = await _fetchModules(courseId);
+    final modulesWithLessons = await Future.wait(
+      modules.map((module) async {
+        final lessons = await _fetchLessons(module.moduleId);
+        final lessonsWithMaterials = await Future.wait(
+          lessons.map((lesson) async {
+            final materials = await _fetchMaterials(lesson.lessonId);
+            return lesson.copyWithMaterials(materials);
+          }),
+        );
+        return module.copyWithLessons(lessonsWithMaterials);
+      }),
+    );
+
+    return CourseContentModel(course: courseModel, modules: modulesWithLessons);
+  }
+
+  Future<List<ModuleModel>> _fetchModules(String courseId) async {
+    final response = await _dio.get<dynamic>(
+      ApiEndpoints.courseModules(courseId),
+    );
+    final data = _unwrapApiData(response.data);
+    if (data is! List) {
+      return const [];
+    }
+    return data
+        .whereType<Map<String, dynamic>>()
+        .map(ModuleModel.fromJson)
+        .toList();
+  }
+
+  Future<List<LessonModel>> _fetchLessons(String moduleId) async {
+    final response = await _dio.get<dynamic>(
+      ApiEndpoints.moduleLessons(moduleId),
+    );
+    final data = _unwrapApiData(response.data);
+    if (data is! List) {
+      return const [];
+    }
+    return data
+        .whereType<Map<String, dynamic>>()
+        .map(LessonModel.fromJson)
+        .toList();
+  }
+
+  Future<List<MaterialModel>> _fetchMaterials(String lessonId) async {
+    final response = await _dio.get<dynamic>(
+      ApiEndpoints.lessonMaterials(lessonId),
+    );
+    final data = _unwrapApiData(response.data);
+    if (data is! List) {
+      return const [];
+    }
+    return data
+        .whereType<Map<String, dynamic>>()
+        .map(MaterialModel.fromJson)
         .toList();
   }
 }

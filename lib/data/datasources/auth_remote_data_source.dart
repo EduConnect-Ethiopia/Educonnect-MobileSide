@@ -16,6 +16,15 @@ abstract class AuthRemoteDataSource {
     required String token,
     required String newPassword,
   });
+
+  Future<void> requestEmailVerification(String email);
+
+  Future<void> confirmEmailVerification({
+    required String email,
+    required String code,
+  });
+
+  Future<void> resendEmailVerification(String email);
 }
 
 class DioAuthRemoteDataSource implements AuthRemoteDataSource {
@@ -59,6 +68,36 @@ class DioAuthRemoteDataSource implements AuthRemoteDataSource {
         'token': token.trim(),
         'newPassword': newPassword,
       },
+    );
+  }
+
+  @override
+  Future<void> requestEmailVerification(String email) async {
+    await _dio.post<dynamic>(
+      ApiEndpoints.requestEmailVerification,
+      data: {'email': email.trim()},
+    );
+  }
+
+  @override
+  Future<void> confirmEmailVerification({
+    required String email,
+    required String code,
+  }) async {
+    await _dio.post<dynamic>(
+      ApiEndpoints.confirmEmailVerification,
+      data: {
+        'email': email.trim(),
+        'code': code.trim(),
+      },
+    );
+  }
+
+  @override
+  Future<void> resendEmailVerification(String email) async {
+    await _dio.post<dynamic>(
+      ApiEndpoints.resendEmailVerification,
+      data: {'email': email.trim()},
     );
   }
 }

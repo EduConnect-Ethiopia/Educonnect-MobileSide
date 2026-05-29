@@ -28,4 +28,13 @@ abstract class AuthRepository {
     required String token,
     required String newPassword,
   });
+
+  Future<void> requestEmailVerification(String email);
+
+  Future<void> confirmEmailVerification({
+    required String email,
+    required String code,
+  });
+
+  Future<void> resendEmailVerification(String email);
 }

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -17,29 +19,49 @@ enum AuthStatus {
   failure,
   passwordResetEmailSent,
   passwordResetCompleted,
+  emailVerificationRequired,
+  emailVerificationCodeSent,
+  emailVerified,
 }
 
 class AuthState {
-  const AuthState({required this.status, this.session, this.errorMessage});
+  const AuthState({
+    required this.status,
+    this.session,
+    this.errorMessage,
+    this.pendingEmail,
+    this.pendingPassword,
+  });
 
   const AuthState.unknown()
     : status = AuthStatus.unknown,
       session = null,
-      errorMessage = null;
+      errorMessage = null,
+      pendingEmail = null,
+      pendingPassword = null;
 
   final AuthStatus status;
   final AuthSession? session;
   final String? errorMessage;
+  final String? pendingEmail;
+  final String? pendingPassword;
 
   AuthState copyWith({
     AuthStatus? status,
     AuthSession? session,
     String? errorMessage,
+    String? pendingEmail,
+    String? pendingPassword,
+    bool clearPending = false,
   }) {
     return AuthState(
       status: status ?? this.status,
       session: session ?? this.session,
       errorMessage: errorMessage,
+      pendingEmail: clearPending ? null : pendingEmail ?? this.pendingEmail,
+      pendingPassword: clearPending
+          ? null
+          : pendingPassword ?? this.pendingPassword,
     );
   }
 }
@@ -59,8 +81,21 @@ class AuthController extends Notifier<AuthState> {
 
     try {
       final session = await _repository.login(email: email, password: password);
-      state = AuthState(status: AuthStatus.authenticated, session: session);
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        session: session,
+      );
     } on Exception catch (error) {
+      if (_isVerificationError(error)) {
+        state = AuthState(
+          status: AuthStatus.emailVerificationRequired,
+          errorMessage: _friendlyError(error),
+          pendingEmail: email,
+          pendingPassword: password,
+        );
+        return;
+      }
+
       state = AuthState(
         status: AuthStatus.failure,
         errorMessage: _friendlyError(error),
@@ -76,12 +111,21 @@ class AuthController extends Notifier<AuthState> {
     state = state.copyWith(status: AuthStatus.loading);
 
     try {
-      final session = await _repository.register(
+      await _repository.register(
         fullName: fullName,
         email: email,
         password: password,
       );
-      state = AuthState(status: AuthStatus.authenticated, session: session);
+      try {
+        await _repository.requestEmailVerification(email);
+      } on Exception {
+        // Ignore resend failures to keep the verification flow unblocked.
+      }
+      state = AuthState(
+        status: AuthStatus.emailVerificationRequired,
+        pendingEmail: email,
+        pendingPassword: password,
+      );
     } on Exception catch (error) {
       state = AuthState(
         status: AuthStatus.failure,
@@ -126,6 +170,51 @@ class AuthController extends Notifier<AuthState> {
     }
   }
 
+  Future<void> requestEmailVerification(String email) async {
+    state = state.copyWith(status: AuthStatus.loading);
+
+    try {
+      await _repository.requestEmailVerification(email);
+      state = state.copyWith(status: AuthStatus.emailVerificationCodeSent);
+    } on Exception catch (error) {
+      state = AuthState(
+        status: AuthStatus.failure,
+        errorMessage: _friendlyError(error),
+      );
+    }
+  }
+
+  Future<void> resendEmailVerification(String email) async {
+    state = state.copyWith(status: AuthStatus.loading);
+
+    try {
+      await _repository.resendEmailVerification(email);
+      state = state.copyWith(status: AuthStatus.emailVerificationCodeSent);
+    } on Exception catch (error) {
+      state = AuthState(
+        status: AuthStatus.failure,
+        errorMessage: _friendlyError(error),
+      );
+    }
+  }
+
+  Future<void> confirmEmailVerification({
+    required String email,
+    required String code,
+  }) async {
+    state = state.copyWith(status: AuthStatus.loading);
+
+    try {
+      await _repository.confirmEmailVerification(email: email, code: code);
+      state = state.copyWith(status: AuthStatus.emailVerified);
+    } on Exception catch (error) {
+      state = AuthState(
+        status: AuthStatus.failure,
+        errorMessage: _friendlyError(error),
+      );
+    }
+  }
+
   Future<void> signOut() async {
     await _repository.logout();
     state = const AuthState(status: AuthStatus.unauthenticated);
@@ -143,12 +232,9 @@ class AuthController extends Notifier<AuthState> {
 
   String _friendlyError(Object error) {
     if (error is DioException) {
-      final data = error.response?.data;
-      if (data is Map<String, dynamic>) {
-        final message = data['message'] ?? data['error'] ?? data['title'];
-        if (message is String && message.trim().isNotEmpty) {
-          return message.trim();
-        }
+      final apiMessage = _extractApiMessage(error);
+      if (apiMessage != null) {
+        return apiMessage;
       }
 
       if (error.type == DioExceptionType.connectionTimeout ||
@@ -169,5 +255,61 @@ class AuthController extends Notifier<AuthState> {
     }
 
     return 'Something went wrong. Please try again.';
+  }
+
+  bool _isVerificationError(Object error) {
+    final message = _extractApiMessage(error);
+    if (message == null) {
+      return false;
+    }
+    final normalized = message.toLowerCase();
+    return normalized.contains('verify') ||
+        normalized.contains('verification') ||
+        normalized.contains('verified');
+  }
+
+  String? _extractApiMessage(Object error) {
+    if (error is! DioException) {
+      return null;
+    }
+
+    final data = error.response?.data;
+    final map = _coerceErrorMap(data);
+    if (map != null) {
+      final message = map['message'] ?? map['error'] ?? map['title'];
+      if (message is String && message.trim().isNotEmpty) {
+        return message.trim();
+      }
+
+      final nested = map['data'];
+      if (nested is Map<String, dynamic>) {
+        final nestedMessage =
+            nested['message'] ?? nested['error'] ?? nested['title'];
+        if (nestedMessage is String && nestedMessage.trim().isNotEmpty) {
+          return nestedMessage.trim();
+        }
+      }
+    }
+
+    return null;
+  }
+
+  Map<String, dynamic>? _coerceErrorMap(Object? data) {
+    if (data is Map<String, dynamic>) {
+      return data;
+    }
+
+    if (data is String) {
+      try {
+        final decoded = jsonDecode(data);
+        if (decoded is Map<String, dynamic>) {
+          return decoded;
+        }
+      } on FormatException {
+        return null;
+      }
+    }
+
+    return null;
   }
 }

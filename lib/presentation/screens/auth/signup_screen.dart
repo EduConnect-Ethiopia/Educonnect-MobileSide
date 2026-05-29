@@ -6,6 +6,7 @@ import '../../../core/utils/validators.dart';
 import '../../providers/auth_controller.dart';
 import '../../widgets/auth_submit_button.dart';
 import '../../widgets/auth_text_field.dart';
+import 'email_verification_screen.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
@@ -37,11 +38,14 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     ref.listen<AuthState>(authControllerProvider, (previous, next) {
-      if (next.status == AuthStatus.authenticated) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Account created and signed in successfully'),
-            backgroundColor: Colors.green,
+      if (next.status == AuthStatus.emailVerificationRequired &&
+          previous?.status != AuthStatus.emailVerificationRequired) {
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => EmailVerificationScreen(
+              email: next.pendingEmail ?? _emailController.text,
+              password: next.pendingPassword ?? _passwordController.text,
+            ),
           ),
         );
       }

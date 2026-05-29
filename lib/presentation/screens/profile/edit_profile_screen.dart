@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/di/app_providers.dart';
+import '../../../core/storage/token_storage.dart';
 import '../../../core/utils/validators.dart';
 import '../../providers/profile_provider.dart';
 import '../auth/reset_password_screen.dart';
@@ -78,10 +80,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               controller: _nameController,
               decoration: const InputDecoration(
                 labelText: 'Full Name',
-                helperText: 'Name is managed by your EduConnect account',
               ),
               validator: Validators.fullName,
-              enabled: false,
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -131,6 +131,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           phone: _phoneController.text,
           bio: _bioController.text,
         );
+    final name = _nameController.text.trim();
+    final tokenStorage = ref.read(tokenStorageProvider);
+    final user = tokenStorage.user;
+    if (user != null && name.isNotEmpty && name != user.fullName) {
+      await tokenStorage.saveUser(
+        StoredAuthUser(id: user.id, email: user.email, fullName: name),
+      );
+    }
     ref.invalidate(profileProvider);
     if (!mounted) return;
     setState(() => _saving = false);

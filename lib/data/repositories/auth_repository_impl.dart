@@ -117,6 +117,27 @@ class AuthRepositoryImpl implements AuthRepository {
     );
   }
 
+  @override
+  Future<void> requestEmailVerification(String email) async {
+    await _remoteDataSource.requestEmailVerification(email);
+  }
+
+  @override
+  Future<void> confirmEmailVerification({
+    required String email,
+    required String code,
+  }) async {
+    await _remoteDataSource.confirmEmailVerification(
+      email: email,
+      code: code,
+    );
+  }
+
+  @override
+  Future<void> resendEmailVerification(String email) async {
+    await _remoteDataSource.resendEmailVerification(email);
+  }
+
   AuthSession _toSession(AuthResponse response) {
     final user = response.user;
 

@@ -91,4 +91,16 @@ class _FakeAuthRemoteDataSource implements AuthRemoteDataSource {
     required String token,
     required String newPassword,
   }) async {}
+
+  @override
+  Future<void> requestEmailVerification(String email) async {}
+
+  @override
+  Future<void> confirmEmailVerification({
+    required String email,
+    required String code,
+  }) async {}
+
+  @override
+  Future<void> resendEmailVerification(String email) async {}
 }

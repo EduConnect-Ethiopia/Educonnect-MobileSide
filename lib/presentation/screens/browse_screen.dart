@@ -144,19 +144,21 @@ class _CourseGridCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    void openCourseDetail() {
+      ref
+          .read(recommendationControllerProvider)
+          .trackView(course.id, category: course.category);
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => CourseDetailScreen(course: course),
+        ),
+      );
+    }
+
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () {
-          ref
-              .read(recommendationControllerProvider)
-              .trackView(course.id, category: course.category);
-          Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => CourseDetailScreen(course: course),
-            ),
-          );
-        },
+        onTap: openCourseDetail,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -195,44 +197,66 @@ class _CourseGridCard extends ConsumerWidget {
                           ),
                     ),
                     const Spacer(),
-                    if (course.isFree)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.secondary.withValues(alpha: 0.14),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          'Free',
-                          style:
-                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                    Row(
+                      children: [
+                        if (course.isFree)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.secondary.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              'Free',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
                                     color: AppColors.secondary,
                                     fontWeight: FontWeight.w700,
                                   ),
-                        ),
-                      )
-                    else
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.14),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '${course.price.toStringAsFixed(0)} ETB',
-                          style:
-                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                            ),
+                          )
+                        else
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '${course.price.toStringAsFixed(0)} ETB',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
                                     color: AppColors.primary,
                                     fontWeight: FontWeight.w700,
                                   ),
+                            ),
+                          ),
+                        const Spacer(),
+                        OutlinedButton(
+                          onPressed: openCourseDetail,
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 0,
+                            ),
+                            minimumSize: const Size(0, 28),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          child: Text(course.isFree ? 'Enroll' : 'Buy'),
                         ),
-                      ),
+                      ],
+                    ),
                   ],
                 ),
               ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -137,6 +138,10 @@ class CertificateDetailScreen extends ConsumerWidget {
           .read(certificateControllerProvider.notifier)
           .downloadCertificate(certificate.id);
       if (!context.mounted) return;
+      final result = await OpenFilex.open(file.path);
+      if (result.type == ResultType.done) {
+        return;
+      }
       await Share.shareXFiles(
         [XFile(file.path)],
         text: 'My Certificate from EduConnect',

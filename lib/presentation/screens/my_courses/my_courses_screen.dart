@@ -43,6 +43,7 @@ class _MyCoursesScreenState extends ConsumerState<MyCoursesScreen>
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
+          tabAlignment: TabAlignment.end,
           tabs: const [
             Tab(text: 'All'),
             Tab(text: 'In Progress'),

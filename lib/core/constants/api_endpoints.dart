@@ -7,6 +7,9 @@ class ApiEndpoints {
   static const login = '/api/Auth/login';
   static const forgotPassword = '/api/Auth/forgot-password';
   static const resetPassword = '/api/Auth/reset-password';
+    static const requestEmailVerification = '/api/Auth/verify/request';
+    static const confirmEmailVerification = '/api/Auth/verify/confirm';
+    static const resendEmailVerification = '/api/Auth/verify/resend';
 
   // Course
   static const publishedCourses = '/api/Course/published';

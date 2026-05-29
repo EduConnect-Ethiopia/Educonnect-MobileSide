@@ -8,6 +8,7 @@ import '../../providers/auth_controller.dart';
 import '../../widgets/auth_submit_button.dart';
 import '../../widgets/auth_text_field.dart';
 import '../main_navigation_screen.dart';
+import 'email_verification_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -36,6 +37,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute<void>(builder: (_) => const MainNavigationScreen()),
           (_) => false,
+        );
+      }
+
+      if (next.status == AuthStatus.emailVerificationRequired &&
+          previous?.status != AuthStatus.emailVerificationRequired) {
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => EmailVerificationScreen(
+              email: next.pendingEmail ?? _emailController.text,
+              password: next.pendingPassword ?? _passwordController.text,
+            ),
+          ),
         );
       }
 

@@ -6,6 +6,20 @@ class Validators {
   );
   static final _upperCasePattern = RegExp('[A-Z]');
   static final _numberPattern = RegExp(r'\d');
+  static final _specialCharPattern = RegExp(r'[!@#\$%^&*(),.?":{}|<>_\-+=/\\\[\]`~;]');
+  static final Set<String> _commonPasswords = {
+    'password',
+    'password1',
+    '12345678',
+    '123456789',
+    'qwerty',
+    'qwerty123',
+    '11111111',
+    'letmein',
+    'welcome',
+    'admin123',
+    'abc12345',
+  };
 
   static String? email(String? value) {
     final email = value?.trim() ?? '';
@@ -42,6 +56,14 @@ class Validators {
 
     if (!_numberPattern.hasMatch(password)) {
       return 'Password must include a number';
+    }
+
+    if (!_specialCharPattern.hasMatch(password)) {
+      return 'Password must include a special character';
+    }
+
+    if (_commonPasswords.contains(password.toLowerCase())) {
+      return 'Password is too common';
     }
 
     return null;

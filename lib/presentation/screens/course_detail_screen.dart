@@ -73,13 +73,19 @@ class CourseDetailScreen extends ConsumerWidget {
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 16),
-                    ...content.modules.map((module) {
-                      return _ModuleListTile(
-                        module: module,
-                        course: course,
-                        content: content,
-                      );
-                    }),
+                    if (content.modules.isEmpty)
+                      Text(
+                        'No modules available yet.',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      )
+                    else
+                      ...content.modules.map((module) {
+                        return _ModuleListTile(
+                          module: module,
+                          course: course,
+                          content: content,
+                        );
+                      }),
                   ],
                 ),
               ),
