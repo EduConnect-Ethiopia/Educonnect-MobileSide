@@ -37,6 +37,7 @@ import '../../domain/repositories/notification_repository.dart';
 import '../../domain/repositories/payment_repository.dart';
 import '../../domain/repositories/progress_repository.dart';
 import '../../domain/repositories/recommendation_repository.dart';
+import '../../presentation/controllers/checkout_controller.dart';
 import '../network/dio_client.dart';
 import '../storage/token_storage.dart';
 
@@ -132,12 +133,26 @@ final cartRepositoryProvider = Provider<CartRepository>((ref) {
   );
 });
 
+final cartControllerProvider = StateNotifierProvider.autoDispose<CartController, CartState>((ref) {
+  return CartController(
+    cartRepository: ref.watch(cartRepositoryProvider),
+    paymentRepository: ref.watch(paymentRepositoryProvider),
+  );
+});
+
 final paymentApiProvider = Provider<PaymentApi>((ref) {
   return PaymentApi(ref.watch(dioProvider));
 });
 
 final paymentRepositoryProvider = Provider<PaymentRepository>((ref) {
   return PaymentRepositoryImpl(paymentApi: ref.watch(paymentApiProvider));
+});
+
+final checkoutControllerProvider = Provider.autoDispose((ref) {
+  return CheckoutController(
+    paymentRepository: ref.watch(paymentRepositoryProvider),
+    cartRepository: ref.watch(cartRepositoryProvider),
+  );
 });
 
 final certificateRemoteDataSourceProvider =
