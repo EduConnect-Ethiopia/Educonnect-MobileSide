@@ -25,6 +25,12 @@ class CourseRepositoryImpl implements CourseRepository {
   }
 
   @override
+  Future<List<Course>> searchCourses(String query) async {
+    final courses = await _remoteDataSource.searchCourses(query);
+    return courses.map((c) => c.toEntity()).toList();
+  }
+
+  @override
   Future<CourseContent> getCourseContent(String courseId) async {
     final content = await _remoteDataSource.getCourseContent(courseId);
     return content.toEntity();

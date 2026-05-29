@@ -39,9 +39,9 @@ class DioRecommendationRemoteDataSource
     await _dio.post<dynamic>(
       ApiEndpoints.trackRecommendation,
       data: {
-        if (courseId != null) 'courseId': courseId,
-        if (category != null) 'category': category,
         'interactionType': interactionType,
+        ...?courseId == null ? null : {'courseId': courseId},
+        ...?category == null ? null : {'category': category},
       },
     );
   }

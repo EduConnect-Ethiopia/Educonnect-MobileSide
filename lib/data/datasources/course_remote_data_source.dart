@@ -8,6 +8,7 @@ import '../models/session_models.dart';
 abstract class CourseRemoteDataSource {
   Future<CourseModel> getCourseById(String courseId);
   Future<List<CourseModel>> getPublishedCourses();
+  Future<List<CourseModel>> searchCourses(String query, {int page = 1, int pageSize = 20});
   Future<CourseContentModel> getCourseContent(String courseId);
   Future<List<ModuleModel>> getCourseModules(String courseId);
   Future<List<LessonModel>> getModuleLessons(String moduleId);
@@ -35,6 +36,40 @@ class DioCourseRemoteDataSource implements CourseRemoteDataSource {
     if (data is! List) return const [];
 
     return data.whereType<Map<String, dynamic>>().map(CourseModel.fromJson).toList();
+  }
+
+  @override
+  Future<List<CourseModel>> searchCourses(String query, {int page = 1, int pageSize = 20}) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) {
+      return getPublishedCourses();
+    }
+
+    final response = await _dio.get<dynamic>(
+      ApiEndpoints.searchCourses,
+      queryParameters: {
+        'query': trimmed,
+        'q': trimmed,
+        'page': page,
+        'pageSize': pageSize,
+      },
+    );
+
+    final data = _unwrapApiData(response.data);
+
+    if (data is List) {
+      return data.whereType<Map<String, dynamic>>().map(CourseModel.fromJson).toList();
+    }
+
+    if (data is Map) {
+      final map = castJsonMap(data);
+      final items = map['items'];
+      if (items is List) {
+        return items.whereType<Map<String, dynamic>>().map(CourseModel.fromJson).toList();
+      }
+    }
+
+    return const [];
   }
 
   @override
@@ -108,28 +143,6 @@ class DioCourseRemoteDataSource implements CourseRemoteDataSource {
     final data = _unwrapApiData(response.data);
     if (data is! List) return const [];
     return data.whereType<Map<String, dynamic>>().map(CourseSessionModel.fromJson).toList();
-  }
-
-  // Helper methods used for fallback assembly
-  Future<List<ModuleModel>> _fetchModules(String courseId) async {
-    final response = await _dio.get<dynamic>(ApiEndpoints.courseModules(courseId));
-    final data = _unwrapApiData(response.data);
-    if (data is! List) return const [];
-    return data.whereType<Map<String, dynamic>>().map(ModuleModel.fromJson).toList();
-  }
-
-  Future<List<LessonModel>> _fetchLessons(String moduleId) async {
-    final response = await _dio.get<dynamic>(ApiEndpoints.moduleLessons(moduleId));
-    final data = _unwrapApiData(response.data);
-    if (data is! List) return const [];
-    return data.whereType<Map<String, dynamic>>().map(LessonModel.fromJson).toList();
-  }
-
-  Future<List<MaterialModel>> _fetchMaterials(String lessonId) async {
-    final response = await _dio.get<dynamic>(ApiEndpoints.lessonMaterials(lessonId));
-    final data = _unwrapApiData(response.data);
-    if (data is! List) return const [];
-    return data.whereType<Map<String, dynamic>>().map(MaterialModel.fromJson).toList();
   }
 }
 
