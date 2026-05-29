@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/datasources/auth_remote_data_source.dart';
+import '../../data/datasources/file_access_remote_data_source.dart';
 import '../../data/datasources/course_remote_data_source.dart';
 import '../../data/datasources/enrollment_remote_data_source.dart';
 import '../../data/datasources/local/cart_local_data_source.dart';
@@ -16,6 +17,7 @@ import '../../data/datasources/remote/recommendation_remote_data_source.dart';
 import '../../data/datasources/session_remote_data_source.dart';
 import '../../data/repositories/assessment_repository_impl.dart';
 import '../../data/repositories/auth_repository_impl.dart';
+import '../../data/repositories/file_access_repository_impl.dart';
 import '../../data/repositories/cart_repository_impl.dart';
 import '../../data/repositories/certificate_repository_impl.dart';
 import '../../data/repositories/course_repository_impl.dart';
@@ -26,6 +28,7 @@ import '../../data/repositories/progress_repository_impl.dart';
 import '../../data/repositories/recommendation_repository_impl.dart';
 import '../../domain/repositories/assessment_repository.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../domain/repositories/file_access_repository.dart';
 import '../../domain/repositories/cart_repository.dart';
 import '../../domain/repositories/certificate_repository.dart';
 import '../../domain/repositories/course_repository.dart';
@@ -69,6 +72,17 @@ final courseRemoteDataSourceProvider = Provider<CourseRemoteDataSource>((ref) {
 final courseRepositoryProvider = Provider<CourseRepository>((ref) {
   return CourseRepositoryImpl(
     remoteDataSource: ref.watch(courseRemoteDataSourceProvider),
+  );
+});
+
+final fileAccessRemoteDataSourceProvider =
+    Provider<FileAccessRemoteDataSource>((ref) {
+  return DioFileAccessRemoteDataSource(ref.watch(dioProvider));
+});
+
+final fileAccessRepositoryProvider = Provider<FileAccessRepository>((ref) {
+  return FileAccessRepositoryImpl(
+    remoteDataSource: ref.watch(fileAccessRemoteDataSourceProvider),
   );
 });
 

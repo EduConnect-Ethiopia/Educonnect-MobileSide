@@ -82,6 +82,15 @@ class _CoursePlayerScreenState extends ConsumerState<CoursePlayerScreen> {
       _playerController = LessonPlayerControllerFactory.create(
         lesson: _currentLesson,
         onComplete: _markLessonComplete,
+        resolveMaterialAccessUrl: (materialId) async {
+          try {
+            return ref
+                .read(fileAccessRepositoryProvider)
+                .createMaterialAccessUrl(materialId);
+          } on Object {
+            return null;
+          }
+        },
         liveSession: widget.liveSession,
         quizAssessment: quiz,
         initialVideoPosition: _videoPosition,
