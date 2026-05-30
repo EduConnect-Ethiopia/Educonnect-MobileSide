@@ -116,11 +116,6 @@ class AuthController extends Notifier<AuthState> {
         email: email,
         password: password,
       );
-      try {
-        await _repository.requestEmailVerification(email);
-      } on Exception {
-        // Ignore resend failures to keep the verification flow unblocked.
-      }
       state = AuthState(
         status: AuthStatus.emailVerificationRequired,
         pendingEmail: email,
@@ -198,7 +193,7 @@ class AuthController extends Notifier<AuthState> {
     }
   }
 
-  Future<void> confirmEmailVerification({
+  Future<bool> confirmEmailVerification({
     required String email,
     required String code,
   }) async {
@@ -207,11 +202,13 @@ class AuthController extends Notifier<AuthState> {
     try {
       await _repository.confirmEmailVerification(email: email, code: code);
       state = state.copyWith(status: AuthStatus.emailVerified);
+      return true;
     } on Exception catch (error) {
       state = AuthState(
         status: AuthStatus.failure,
         errorMessage: _friendlyError(error),
       );
+      return false;
     }
   }
 

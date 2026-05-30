@@ -42,7 +42,7 @@ class AuthRepositoryImpl implements AuthRepository {
       RegisterRequest(fullName: fullName, email: email, password: password),
     );
 
-    return login(email: email, password: password);
+    return const AuthSession(accessToken: '');
   }
 
   @override

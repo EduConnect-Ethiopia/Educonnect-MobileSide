@@ -61,19 +61,6 @@ class _EmailVerificationScreenState
         );
       }
 
-      if (next.status == AuthStatus.emailVerified) {
-        if (widget.password != null && widget.password!.isNotEmpty) {
-          await ref
-              .read(authControllerProvider.notifier)
-              .signIn(email: _emailController.text, password: widget.password!);
-          return;
-        }
-        if (!context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Email verified successfully.')),
-        );
-      }
-
       if (next.status == AuthStatus.authenticated) {
         if (!context.mounted) return;
         Navigator.of(context).pushAndRemoveUntil(
@@ -96,7 +83,8 @@ class _EmailVerificationScreenState
 
     return AuthScaffold(
       title: 'Verify your email',
-      subtitle: 'Check your inbox for a verification code to continue.',
+      subtitle:
+          'Enter the verification code sent to the email you just used to log in.',
       footer: TextButton(
         onPressed: isLoading ? null : () => Navigator.of(context).pop(),
         child: const Text('Back'),
@@ -118,7 +106,8 @@ class _EmailVerificationScreenState
             AuthTextField(
               controller: _codeController,
               label: 'Verification code',
-              hintText: 'Enter the code from your email',
+              hintText:
+                  'Enter the verification code sent to your email',
               keyboardType: TextInputType.number,
               textInputAction: TextInputAction.done,
               validator: (value) {
@@ -131,7 +120,7 @@ class _EmailVerificationScreenState
             ),
             const SizedBox(height: 28),
             AuthSubmitButton(
-              label: 'Confirm verification',
+              label: 'Verify',
               icon: Icons.verified_outlined,
               isLoading: isLoading,
               onPressed: _confirm,
@@ -153,14 +142,31 @@ class _EmailVerificationScreenState
     );
   }
 
-  void _confirm() {
+  Future<void> _confirm() async {
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
     }
 
-    ref.read(authControllerProvider.notifier).confirmEmailVerification(
+    final auth = ref.read(authControllerProvider.notifier);
+    final verified = await auth.confirmEmailVerification(
           email: _emailController.text,
           code: _codeController.text,
         );
+
+    if (!verified || !mounted) {
+      return;
+    }
+
+    if (widget.password != null && widget.password!.isNotEmpty) {
+      await auth.signIn(
+        email: _emailController.text,
+        password: widget.password!,
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Email verified successfully.')),
+    );
   }
 }
