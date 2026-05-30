@@ -61,18 +61,17 @@ class _QuestionWidgetState extends State<QuestionWidget> {
 
   Widget _buildMultipleChoice() {
     final groupValue = widget.initialAnswer as int?;
-    return Column(
-      children: List.generate(widget.question.options.length, (index) {
-        return ListTile(
-          leading: Radio<int>(
+    return RadioGroup<int>(
+      groupValue: groupValue,
+      onChanged: (value) => widget.onAnswer(value),
+      child: Column(
+        children: List.generate(widget.question.options.length, (index) {
+          return RadioListTile<int>(
             value: index,
-            groupValue: groupValue,
-            onChanged: (v) => widget.onAnswer(v),
-          ),
-          title: Text(widget.question.options[index]),
-          onTap: () => widget.onAnswer(index),
-        );
-      }),
+            title: Text(widget.question.options[index]),
+          );
+        }),
+      ),
     );
   }
 

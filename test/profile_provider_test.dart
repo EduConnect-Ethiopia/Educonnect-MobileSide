@@ -57,10 +57,6 @@ class _FakeEnrollmentRepo implements EnrollmentRepository {
   Future<void> enroll(String courseId) async {}
   @override
   Future<void> unenroll(String courseId) async {}
-  @override
-  Future<List<Enrollment>> getEnrollmentsForUser(String userId) async => [];
-  @override
-  Future<Enrollment> getEnrollmentById(String id) async => throw UnimplementedError();
 }
 
 class _FakeCertRepo implements CertificateRepository {
@@ -86,7 +82,7 @@ void main() {
     final container = ProviderContainer(overrides: [
       authRepositoryProvider.overrideWithValue(_FakeAuth(const AuthenticatedUser(id: 'u1', email: 'a@b', fullName: 'User One'))),
       enrollmentRepositoryProvider.overrideWithValue(_FakeEnrollmentRepo([
-        Enrollment(id: 'e1', learnerId: 'u1', courseId: 'c1', status: 3),
+        Enrollment(id: 'e1', learnerId: 'u1', courseId: 'c1', status: 2),
         Enrollment(id: 'e2', learnerId: 'u1', courseId: 'c2', status: 1),
       ])),
       certificateRepositoryProvider.overrideWithValue(_FakeCertRepo([

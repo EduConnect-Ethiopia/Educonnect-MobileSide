@@ -38,7 +38,6 @@ import '../../domain/repositories/payment_repository.dart';
 import '../../domain/repositories/progress_repository.dart';
 import '../../domain/repositories/recommendation_repository.dart';
 import '../../presentation/controllers/checkout_controller.dart';
-import '../../presentation/controllers/cart_controller.dart';
 import '../network/dio_client.dart';
 import '../storage/token_storage.dart';
 
@@ -131,13 +130,6 @@ final cartRepositoryProvider = Provider<CartRepository>((ref) {
   return CartRepositoryImpl(
     localDataSource: ref.watch(cartLocalDataSourceProvider),
     courseRepository: ref.watch(courseRepositoryProvider),
-  );
-});
-
-final cartControllerProvider = StateNotifierProvider.autoDispose<CartController, CartState>((ref) {
-  return CartController(
-    cartRepository: ref.watch(cartRepositoryProvider),
-    paymentRepository: ref.watch(paymentRepositoryProvider),
   );
 });
 
