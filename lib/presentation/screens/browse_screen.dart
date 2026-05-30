@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/utils/search_debouncer.dart';
 import '../../domain/entities/course.dart';
 import '../providers/featured_courses_provider.dart';
 import '../providers/recommendation_provider.dart';
+import '../providers/settings_provider.dart';
+import '../providers/cart_provider.dart';
+import '../providers/enrollment_provider.dart';
 import '../widgets/section_header.dart';
 import 'course_detail_screen.dart';
 
@@ -48,9 +52,25 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(featuredCoursesControllerProvider);
     final courses = state.courses;
+    final isAmharic = ref.watch(settingsProvider).language == 'am';
+    final myCourses = ref.watch(myCoursesProvider).value ?? const <Course>[];
+    final ownedCourseIds = myCourses.map((course) => course.id).toSet();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Browse Courses')),
+      appBar: AppBar(
+        title: Text(isAmharic ? 'ይፈልጉ' : 'Browse'),
+        actions: [
+          IconButton(
+            tooltip: isAmharic ? 'አድስ' : 'Refresh',
+            onPressed: state.isLoading
+                ? null
+                : () => ref
+                    .read(featuredCoursesControllerProvider.notifier)
+                    .loadCourses(query: _query),
+            icon: const Icon(Icons.refresh_outlined),
+          ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: () =>
             ref.read(featuredCoursesControllerProvider.notifier).loadCourses(query: _query),
@@ -101,7 +121,9 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final course = courses[index];
-                    return _CourseGridCard(course: course);
+                    final isOwned =
+                        ownedCourseIds.contains(course.id) || course.enrollmentId != null;
+                    return _CourseGridCard(course: course, showBuyButton: !isOwned);
                   },
                   childCount: courses.length,
                 ),
@@ -117,7 +139,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                           ? 'No courses available yet.'
                           : 'No courses match your search.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textSubtitle,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                     ),
                   ),
@@ -131,9 +153,10 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
 }
 
 class _CourseGridCard extends ConsumerWidget {
-  const _CourseGridCard({required this.course});
+  const _CourseGridCard({required this.course, required this.showBuyButton});
 
   final Course course;
+  final bool showBuyButton;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -155,16 +178,7 @@ class _CourseGridCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: double.infinity,
-              height: 120,
-              color: AppColors.primary.withValues(alpha: 0.12),
-              child: const Icon(
-                Icons.school_outlined,
-                size: 40,
-                color: AppColors.primary,
-              ),
-            ),
+            _CourseGridThumbnail(course: course),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(8),
@@ -176,7 +190,7 @@ class _CourseGridCard extends ConsumerWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            color: AppColors.textHeadline,
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontWeight: FontWeight.w700,
                           ),
                     ),
@@ -186,7 +200,7 @@ class _CourseGridCard extends ConsumerWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSubtitle,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                     ),
                     const Spacer(),
@@ -235,19 +249,25 @@ class _CourseGridCard extends ConsumerWidget {
                             ),
                           ),
                         const Spacer(),
-                        OutlinedButton(
-                          onPressed: openCourseDetail,
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 0,
+                        if (showBuyButton)
+                          OutlinedButton(
+                            onPressed: () {
+                              ref.read(cartControllerProvider.notifier).addToCart(course);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Course added to cart')),
+                              );
+                            },
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 0,
+                              ),
+                              minimumSize: const Size(0, 28),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              visualDensity: VisualDensity.compact,
                             ),
-                            minimumSize: const Size(0, 28),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            visualDensity: VisualDensity.compact,
+                            child: const Text('Buy'),
                           ),
-                          child: Text(course.isFree ? 'Enroll' : 'Buy'),
-                        ),
                       ],
                     ),
                   ],
@@ -257,6 +277,38 @@ class _CourseGridCard extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _CourseGridThumbnail extends StatelessWidget {
+  const _CourseGridThumbnail({required this.course});
+
+  final Course course;
+
+  @override
+  Widget build(BuildContext context) {
+    final thumbnailUrl = course.thumbnailUrl;
+
+    return Container(
+      width: double.infinity,
+      height: 120,
+      color: AppColors.primary.withValues(alpha: 0.12),
+      child: thumbnailUrl == null || thumbnailUrl.isEmpty
+          ? const Icon(
+              Icons.school_outlined,
+              size: 40,
+              color: AppColors.primary,
+            )
+          : CachedNetworkImage(
+              imageUrl: thumbnailUrl,
+              fit: BoxFit.cover,
+              errorWidget: (_, _, _) => const Icon(
+                Icons.school_outlined,
+                size: 40,
+                color: AppColors.primary,
+              ),
+            ),
     );
   }
 }

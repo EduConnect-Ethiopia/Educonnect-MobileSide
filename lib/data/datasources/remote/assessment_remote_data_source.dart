@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'dart:io';
 
 import '../../../core/constants/api_endpoints.dart';
 import '../../../core/utils/json_map.dart';
@@ -13,6 +14,11 @@ abstract class AssessmentRemoteDataSource {
     required String assessmentId,
     required Map<String, String> answers,
     String content = '',
+  });
+  Future<void> submitAssignment({
+    required String assessmentId,
+    required String filePath,
+    String content,
   });
 }
 
@@ -73,6 +79,28 @@ class DioAssessmentRemoteDataSource implements AssessmentRemoteDataSource {
       },
     );
     return SubmissionResultDto.fromJson(castJsonMap(response.data));
+  }
+
+  @override
+  Future<void> submitAssignment({
+    required String assessmentId,
+    required String filePath,
+    String content = '',
+  }) async {
+    final formData = FormData.fromMap({
+      'AssessmentId': assessmentId,
+      'Content': content,
+      'File': await MultipartFile.fromFile(
+        filePath,
+        filename: File(filePath).uri.pathSegments.last,
+      ),
+    });
+
+    await _dio.post<dynamic>(
+      '${ApiEndpoints.submitAssignment}',
+      data: formData,
+      options: Options(contentType: 'multipart/form-data'),
+    );
   }
 
   List<AssessmentSummaryDto> _mapAssessmentList(Object? value) {

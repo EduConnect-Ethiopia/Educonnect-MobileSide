@@ -3,12 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../domain/entities/assessment.dart';
 import '../../domain/entities/course.dart';
 import '../../domain/entities/course_content.dart';
 import '../../domain/entities/course_session.dart';
 import '../providers/cart_provider.dart';
+import '../providers/assessment_provider.dart';
 import '../providers/course_detail_provider.dart';
 import '../providers/enrollment_provider.dart';
+import 'assessments/assignment_submission_screen.dart';
 import 'courses/course_player_screen.dart';
 
 class CourseDetailScreen extends ConsumerWidget {
@@ -20,6 +23,7 @@ class CourseDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final contentAsync = ref.watch(courseContentAsyncProvider(course.id));
     final sessionsAsync = ref.watch(courseSessionsAsyncProvider(course.id));
+    final assessmentsAsync = ref.watch(upcomingAssessmentsProvider(course.id));
     final enrollmentState = ref.watch(enrollmentControllerProvider);
 
     return Scaffold(
@@ -122,6 +126,82 @@ class CourseDetailScreen extends ConsumerWidget {
                     );
                   }
                   return const SizedBox.shrink();
+                },
+              ),
+
+              assessmentsAsync.when(
+                loading: () => const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: SizedBox(
+                    height: 40,
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                ),
+                error: (_, __) => const SizedBox.shrink(),
+                data: (assessments) {
+                  final assignments = assessments
+                      .where((assessment) => assessment.isAssignment)
+                      .toList();
+                  if (assignments.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+
+                  final canAccessAssignments =
+                      course.isFree || course.enrollmentId != null;
+
+                  return Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Assignments',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: 12),
+                        ...assignments.map((assignment) {
+                          return Card(
+                            child: ListTile(
+                              leading: Icon(
+                                canAccessAssignments
+                                    ? Icons.assignment_outlined
+                                    : Icons.lock_outline,
+                                color: canAccessAssignments
+                                    ? AppColors.primary
+                                    : Colors.grey,
+                              ),
+                              title: Text(assignment.title),
+                              subtitle: Text(
+                                assignment.dueDate != null
+                                    ? 'Due ${assignment.dueDate!.day}/${assignment.dueDate!.month}/${assignment.dueDate!.year}'
+                                    : 'No deadline set',
+                              ),
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: canAccessAssignments
+                                  ? () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) => AssignmentSubmissionScreen(
+                                            assessment: assignment,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  : null,
+                            ),
+                          );
+                        }),
+                        if (!canAccessAssignments)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 8),
+                            child: Text(
+                              'Buy or enroll in this course to submit assignment PDFs.',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
                 },
               ),
 
@@ -300,20 +380,48 @@ class _ModuleListTile extends StatefulWidget {
 class _ModuleListTileState extends State<_ModuleListTile> {
   @override
   Widget build(BuildContext context) {
+    final hasAccess = widget.course.isFree || widget.course.enrollmentId != null;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ExpansionTile(
-        title: Text(
-          widget.module.title,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                widget.module.title,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+            ),
+            if (!hasAccess)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.lock_outline, size: 14, color: Colors.grey),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Locked',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: Colors.grey,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
         ),
         subtitle: Text(
           '${widget.module.lessons.length} lessons',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: AppColors.textSubtitle,
-          ),
+                color: AppColors.textSubtitle,
+              ),
         ),
         children: [
           ...widget.module.lessons.map((lesson) {
@@ -321,19 +429,30 @@ class _ModuleListTileState extends State<_ModuleListTile> {
               dense: true,
               title: Text(lesson.title),
               subtitle: Text('${lesson.materials.length} materials'),
-              trailing: const Icon(Icons.play_circle_outline, size: 20),
-              onTap: () {
-                final enrollmentId = widget.course.enrollmentId ?? 'local';
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => CoursePlayerScreen(
-                      course: widget.course,
-                      enrollmentId: enrollmentId,
-                      initialLesson: lesson,
-                    ),
-                  ),
-                );
-              },
+              trailing: hasAccess
+                  ? const Icon(Icons.play_circle_outline, size: 20)
+                  : const Icon(Icons.lock, size: 20, color: Colors.grey),
+              enabled: hasAccess,
+              onTap: hasAccess
+                  ? () {
+                      final enrollmentId = widget.course.enrollmentId ?? 'local';
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => CoursePlayerScreen(
+                            course: widget.course,
+                            enrollmentId: enrollmentId,
+                            initialLesson: lesson,
+                          ),
+                        ),
+                      );
+                    }
+                  : () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('This content is locked. Purchase the course to access.'),
+                        ),
+                      );
+                    },
             );
           }),
           const SizedBox(height: 8),

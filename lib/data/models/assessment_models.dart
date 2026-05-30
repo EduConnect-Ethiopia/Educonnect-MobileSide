@@ -9,6 +9,7 @@ class AssessmentSummaryDto {
     required this.courseId,
     required this.title,
     required this.description,
+    required this.assessmentType,
     required this.passingScore,
     required this.timeLimitMinutes,
     required this.maxAttempts,
@@ -20,6 +21,7 @@ class AssessmentSummaryDto {
   final String courseId;
   final String title;
   final String description;
+  final String assessmentType;
   final double passingScore;
   final int? timeLimitMinutes;
   final int maxAttempts;
@@ -34,6 +36,8 @@ class AssessmentSummaryDto {
       courseId: findString(data, const ['courseId']) ?? '',
       title: findString(data, const ['title']) ?? 'Assessment',
       description: findString(data, const ['description']) ?? '',
+        assessmentType:
+          findString(data, const ['assessmentType', 'type']) ?? 'Quiz',
       passingScore: _readDouble(data['passingScore']) ?? 50,
       timeLimitMinutes: _readInt(data['timeLimitMinutes']),
       maxAttempts: _readInt(data['maxAttempts']) ?? 3,
@@ -48,12 +52,26 @@ class AssessmentSummaryDto {
       courseId: courseId,
       title: title,
       description: description,
+      type: _mapAssessmentType(assessmentType),
       durationMinutes: timeLimitMinutes ?? 30,
       passingScore: passingScore.round(),
       questions: questions,
       dueDate: dueDate,
       attemptLimit: maxAttempts,
     );
+  }
+}
+
+AssessmentType _mapAssessmentType(String value) {
+  switch (value.toLowerCase()) {
+    case 'quiz':
+      return AssessmentType.quiz;
+    case 'assignment':
+      return AssessmentType.assignment;
+    case 'exam':
+      return AssessmentType.exam;
+    default:
+      return AssessmentType.unknown;
   }
 }
 

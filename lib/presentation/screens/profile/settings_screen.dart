@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/constants/app_colors.dart';
 import '../../../core/di/app_providers.dart';
 import '../../providers/auth_controller.dart';
 import '../../providers/settings_provider.dart';
 import '../auth/login_screen.dart';
-import 'faq_screen.dart';
+import 'help_support_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -19,6 +20,7 @@ class SettingsScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(isAmharic ? 'ቅንብሮች' : 'Settings')),
       body: ListView(
         children: [
+          _SectionHeader(title: isAmharic ? 'ምርጫዎች' : 'Preferences'),
           SwitchListTile(
             title: Text(isAmharic ? 'ጨለማ ሁነታ' : 'Dark Mode'),
             subtitle: Text(
@@ -68,26 +70,26 @@ class SettingsScreen extends ConsumerWidget {
               onChanged: ref.read(settingsProvider.notifier).setVideoQuality,
             ),
           ),
-          ListTile(
-            leading: const Icon(Icons.help_outline),
-            title: Text(isAmharic ? 'ጥያቄና መልስ' : 'FAQ'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const FaqScreen()),
-              );
-            },
-          ),
+          const SizedBox(height: 8),
+          _SectionHeader(title: isAmharic ? 'እገዛ እና ድጋፍ' : 'Help & Support'),
           ListTile(
             leading: const Icon(Icons.support_agent_outlined),
             title: Text(isAmharic ? 'እገዛ እና ድጋፍ' : 'Help & Support'),
-            subtitle: const Text('support@educonnect.et'),
+            subtitle: Text(
+              isAmharic
+                  ? 'FAQ፣ መገኛ፣ የግል መረጃ እና የህግ መስፈርቶች'
+                  : 'FAQ, contact us, privacy policy, and terms',
+            ),
             onTap: () {
               Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const FaqScreen()),
+                MaterialPageRoute<void>(
+                  builder: (_) => const HelpSupportScreen(),
+                ),
               );
             },
           ),
+          const SizedBox(height: 8),
+          _SectionHeader(title: isAmharic ? 'መለያ' : 'Account'),
           ListTile(
             leading: const Icon(Icons.delete_outline),
             title: Text(isAmharic ? 'መሸጎጫ አጥራ' : 'Clear Cache'),
@@ -160,6 +162,26 @@ class SettingsScreen extends ConsumerWidget {
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
       (_) => false,
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+      child: Text(
+        title,
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: AppColors.textSubtitle,
+            ),
+      ),
     );
   }
 }

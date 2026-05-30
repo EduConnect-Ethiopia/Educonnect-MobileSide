@@ -23,7 +23,7 @@ class ResetPasswordScreen extends ConsumerStatefulWidget {
 class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _emailController;
-  final _tokenController = TextEditingController();
+  final _codeController = TextEditingController();
   final _passwordController = TextEditingController();
 
   @override
@@ -35,7 +35,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   @override
   void dispose() {
     _emailController.dispose();
-    _tokenController.dispose();
+    _codeController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -82,7 +82,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
             ),
             const SizedBox(height: 18),
             AuthTextField(
-              controller: _tokenController,
+              controller: _codeController,
               label: 'Reset code',
               hintText: 'Code from email',
               validator: (value) {
@@ -124,7 +124,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
 
     ref.read(authControllerProvider.notifier).resetPassword(
           email: _emailController.text,
-          token: _tokenController.text,
+          code: _codeController.text,
           newPassword: _passwordController.text,
         );
   }

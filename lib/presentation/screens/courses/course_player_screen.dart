@@ -74,7 +74,10 @@ class _CoursePlayerScreenState extends ConsumerState<CoursePlayerScreen> {
       final assessments = await ref.read(
         upcomingAssessmentsProvider(widget.course.id).future,
       );
-      quiz = assessments.isNotEmpty ? assessments.first : null;
+        final quizAssessments = assessments
+          .where((a) => a.isQuiz || a.isExam)
+          .toList();
+      quiz = quizAssessments.isNotEmpty ? quizAssessments.first : null;
     }
 
     if (!mounted) return;

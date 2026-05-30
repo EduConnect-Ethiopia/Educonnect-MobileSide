@@ -32,6 +32,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     ref.listen<AuthState>(authControllerProvider, (previous, next) {
+      if (!(ModalRoute.of(context)?.isCurrent ?? false)) {
+        return;
+      }
+
       if (next.status == AuthStatus.emailVerificationRequired &&
           previous?.status != AuthStatus.emailVerificationRequired) {
         Navigator.of(context).push(

@@ -13,7 +13,7 @@ class EmailVerificationScreen extends ConsumerStatefulWidget {
   const EmailVerificationScreen({
     required this.email,
     this.password,
-    this.autoRequest = true,
+    this.autoRequest = false,
     super.key,
   });
 
@@ -36,14 +36,6 @@ class _EmailVerificationScreenState
   void initState() {
     super.initState();
     _emailController = TextEditingController(text: widget.email);
-
-    if (widget.autoRequest) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref
-            .read(authControllerProvider.notifier)
-            .requestEmailVerification(_emailController.text);
-      });
-    }
     _remainingSeconds = 0;
   }
 
@@ -58,6 +50,10 @@ class _EmailVerificationScreenState
   @override
   Widget build(BuildContext context) {
     ref.listen<AuthState>(authControllerProvider, (previous, next) async {
+      if (!(ModalRoute.of(context)?.isCurrent ?? false)) {
+        return;
+      }
+
       if (next.status == AuthStatus.emailVerificationCodeSent) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Verification code sent.')),

@@ -9,6 +9,7 @@ import '../../widgets/auth_submit_button.dart';
 import '../../widgets/auth_text_field.dart';
 import '../main_navigation_screen.dart';
 import 'email_verification_screen.dart';
+import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -33,6 +34,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     ref.listen<AuthState>(authControllerProvider, (previous, next) {
+      if (!(ModalRoute.of(context)?.isCurrent ?? false)) {
+        return;
+      }
+
       if (next.status == AuthStatus.authenticated) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute<void>(builder: (_) => const MainNavigationScreen()),
@@ -133,6 +138,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         label: 'Sign in',
                         isLoading: isLoading,
                         onPressed: _submit,
+                      ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: isLoading
+                              ? null
+                              : () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) => ForgotPasswordScreen(
+                                        initialEmail: _emailController.text,
+                                      ),
+                                    ),
+                                  );
+                                },
+                          child: const Text('Forgot password?'),
+                        ),
                       ),
                       SizedBox(height: 120.h),
                       TextButton(

@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  test('register signs up then logs in with the same credentials', () async {
+  test('register signs up without auto-login', () async {
     SharedPreferences.setMockInitialValues({});
     final preferences = await SharedPreferences.getInstance();
     final remote = _FakeAuthRemoteDataSource();
@@ -22,10 +22,10 @@ void main() {
     );
 
     expect(remote.registeredEmail, 'abebe@example.com');
-    expect(remote.loginEmail, 'abebe@example.com');
-    expect(remote.loginPassword, 'Password123!');
-    expect(session.accessToken, 'jwt-token');
-    expect(session.user?.id, 'user-1');
+    expect(remote.loginEmail, isNull);
+    expect(remote.loginPassword, isNull);
+    expect(session.accessToken, isEmpty);
+    expect(await repository.isAuthenticated(), isFalse);
   });
 
   test('logout and refresh clear local auth state only', () async {
@@ -88,7 +88,7 @@ class _FakeAuthRemoteDataSource implements AuthRemoteDataSource {
   @override
   Future<void> resetPassword({
     required String email,
-    required String token,
+    required String code,
     required String newPassword,
   }) async {}
 

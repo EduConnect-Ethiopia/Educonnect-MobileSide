@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../domain/entities/cart_item.dart';
 import '../../../domain/repositories/payment_repository.dart';
 import '../../providers/cart_provider.dart';
+import '../../providers/settings_provider.dart';
 import '../main_navigation_screen.dart';
 
 class CartScreen extends ConsumerStatefulWidget {
@@ -26,9 +27,21 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   @override
   Widget build(BuildContext context) {
     final cart = ref.watch(cartControllerProvider);
+    final isAmharic = ref.watch(settingsProvider).language == 'am';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My Cart')),
+      appBar: AppBar(
+        title: Text(isAmharic ? 'ካርት' : 'Cart'),
+        actions: [
+          IconButton(
+            tooltip: isAmharic ? 'አድስ' : 'Refresh',
+            onPressed: cart.isLoading
+                ? null
+                : () => ref.read(cartControllerProvider.notifier).loadCart(),
+            icon: const Icon(Icons.refresh_outlined),
+          ),
+        ],
+      ),
       body: cart.isLoading
           ? const Center(child: CircularProgressIndicator())
           : cart.isEmpty
@@ -53,27 +66,43 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   }
 
   Widget _buildEmptyCart(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: colorScheme.surface,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFE0E0E0)),
+            border: Border.all(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF333333)
+                  : const Color(0xFFE0E0E0),
+            ),
           ),
-          child: const Column(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.shopping_cart_outlined, size: 48),
-              SizedBox(height: 16),
+              Icon(
+                Icons.shopping_cart_outlined,
+                size: 48,
+                color: colorScheme.onSurface,
+              ),
+              const SizedBox(height: 16),
               Text(
                 'Cart is empty',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                  color: colorScheme.onSurface,
+                ),
               ),
-              SizedBox(height: 6),
-              Text('Add paid courses from Browse to checkout.'),
+              const SizedBox(height: 6),
+              Text(
+                'Add paid courses from Browse to checkout.',
+                style: TextStyle(color: colorScheme.onSurfaceVariant),
+              ),
             ],
           ),
         ),

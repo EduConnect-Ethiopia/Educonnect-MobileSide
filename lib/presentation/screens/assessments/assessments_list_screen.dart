@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/assessment_provider.dart';
+import 'assignment_submission_screen.dart';
 import 'assessment_player_screen.dart';
 
 class AssessmentsListScreen extends ConsumerWidget {
@@ -41,8 +42,9 @@ class AssessmentsListScreen extends ConsumerWidget {
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute<void>(
-                        builder: (_) =>
-                            AssessmentPlayerScreen(assessment: a),
+                        builder: (_) => a.isAssignment
+                            ? AssignmentSubmissionScreen(assessment: a)
+                            : AssessmentPlayerScreen(assessment: a),
                       ),
                     );
                   },

@@ -10,6 +10,7 @@ import '../../providers/course_detail_provider.dart';
 import '../../providers/progress_provider.dart';
 import '../assessments/assessment_player_screen.dart';
 import '../certificates/certificate_list_screen.dart';
+import '../assessments/assignment_submission_screen.dart';
 import '../courses/course_player_screen.dart';
 
 class CourseProgressScreen extends ConsumerStatefulWidget {
@@ -251,7 +252,9 @@ class _CourseProgressScreenState extends ConsumerState<CourseProgressScreen> {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
-                    builder: (_) => AssessmentPlayerScreen(assessment: a),
+                    builder: (_) => a.isAssignment
+                        ? AssignmentSubmissionScreen(assessment: a)
+                        : AssessmentPlayerScreen(assessment: a),
                   ),
                 );
               },

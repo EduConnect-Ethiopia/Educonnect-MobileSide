@@ -1,4 +1,5 @@
 import '../../core/constants/backend_enum_values.dart';
+import '../../core/config/app_environment.dart';
 import '../../core/utils/json_map.dart';
 import '../../domain/entities/course.dart';
 import '../../domain/entities/enrollment.dart';
@@ -13,6 +14,7 @@ class CourseModel {
     required this.mode,
     required this.price,
     required this.courseStatus,
+    this.thumbnailUrl,
     this.createdAt,
     this.updatedAt,
   });
@@ -24,6 +26,7 @@ class CourseModel {
   final int mode;
   final double price;
   final int courseStatus;
+  final String? thumbnailUrl;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -39,6 +42,9 @@ class CourseModel {
       price: _readDouble(data['price']) ?? 0,
       courseStatus:
           _readInt(data['courseStatus']) ?? BackendEnumValues.courseStatusDraft,
+      thumbnailUrl: _resolveThumbnailUrl(
+        findString(data, const ['thumbnailUrl', 'thumbnail', 'imageUrl', 'coverUrl']),
+      ),
       createdAt: parseDateTime(data['createdAt']),
       updatedAt: _parseBackendDate(data['updatedAt']),
     );
@@ -54,6 +60,7 @@ class CourseModel {
       status: courseStatus,
       price: price,
       instructor: 'EduConnect Instructor',
+      thumbnailUrl: thumbnailUrl,
       progress: progress,
       enrolledAt: enrolledAt,
     );
@@ -402,4 +409,19 @@ double? _readDouble(Object? value) {
   }
 
   return null;
+}
+
+String? _resolveThumbnailUrl(String? rawUrl) {
+  if (rawUrl == null || rawUrl.trim().isEmpty) {
+    return null;
+  }
+
+  final url = rawUrl.trim();
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+
+  final base = AppEnvironment.apiBaseUrl.replaceAll(RegExp(r'/+$'), '');
+  final path = url.startsWith('/') ? url : '/$url';
+  return '$base$path';
 }

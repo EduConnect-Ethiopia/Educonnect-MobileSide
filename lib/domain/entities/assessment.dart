@@ -6,12 +6,20 @@ enum QuestionType {
   essay,
 }
 
+enum AssessmentType {
+  quiz,
+  assignment,
+  exam,
+  unknown,
+}
+
 class Assessment {
   const Assessment({
     required this.id,
     required this.courseId,
     required this.title,
     required this.description,
+    required this.type,
     required this.durationMinutes,
     required this.passingScore,
     required this.questions,
@@ -24,12 +32,17 @@ class Assessment {
   final String courseId;
   final String title;
   final String description;
+  final AssessmentType type;
   final int durationMinutes;
   final int passingScore;
   final List<Question> questions;
   final DateTime? dueDate;
   final int attemptLimit;
   final bool shuffleQuestions;
+
+  bool get isAssignment => type == AssessmentType.assignment;
+  bool get isExam => type == AssessmentType.exam;
+  bool get isQuiz => type == AssessmentType.quiz;
 }
 
 class Question {

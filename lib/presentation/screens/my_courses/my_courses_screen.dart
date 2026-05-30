@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/di/app_providers.dart';
 import '../../../domain/entities/course.dart';
 import '../../providers/enrollment_provider.dart';
+import '../../providers/settings_provider.dart';
 import '../../widgets/course_card.dart';
 import 'course_progress_screen.dart';
 
@@ -36,24 +37,25 @@ class _MyCoursesScreenState extends ConsumerState<MyCoursesScreen>
   Widget build(BuildContext context) {
     final myCoursesAsync = ref.watch(myCoursesProvider);
     final progressMapAsync = ref.watch(myCoursesProgressProvider);
+    final isAmharic = ref.watch(settingsProvider).language == 'am';
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Courses'),
+        title: Text(isAmharic ? 'የእኔ ኮርሶች' : 'My Courses'),
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
           tabAlignment: TabAlignment.start,
-          tabs: const [
-            Tab(text: 'All'),
-            Tab(text: 'In Progress'),
-            Tab(text: 'Completed'),
-            Tab(text: 'Dropped'),
+          tabs: [
+            Tab(text: isAmharic ? 'ሁሉም' : 'All'),
+            Tab(text: isAmharic ? 'በሂደት' : 'In Progress'),
+            Tab(text: isAmharic ? 'ተጠናቀቀ' : 'Completed'),
+            Tab(text: isAmharic ? 'ተተወ' : 'Dropped'),
           ],
         ),
         actions: [
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: isAmharic ? 'አድስ' : 'Refresh',
             onPressed: () {
               ref.invalidate(myCoursesProvider);
               ref.invalidate(myCoursesProgressProvider);
@@ -185,24 +187,36 @@ class _EmptyCoursesState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE0E0E0)),
+        border: Border.all(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF333333)
+              : const Color(0xFFE0E0E0),
+        ),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.school_outlined, color: AppColors.secondary, size: 48),
-          SizedBox(height: 16),
+          const Icon(Icons.school_outlined, color: AppColors.secondary, size: 48),
+          const SizedBox(height: 16),
           Text(
             'No courses in this tab',
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 18,
+              color: colorScheme.onSurface,
+            ),
           ),
-          SizedBox(height: 6),
-          Text('Enroll in courses from Browse to see them here.'),
+          const SizedBox(height: 6),
+          Text(
+            'Enroll in courses from Browse to see them here.',
+            style: TextStyle(color: colorScheme.onSurfaceVariant),
+          ),
         ],
       ),
     );

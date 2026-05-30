@@ -23,7 +23,8 @@ class CartRepositoryImpl implements CartRepository {
         final course = await _courses.getCourseById(id);
         items.add(CartItem(courseId: id, course: course));
       } on Object {
-        await _local.removeCourseId(id);
+        // Keep the id in local storage so transient network errors do not
+        // permanently remove cart items on refresh.
       }
     }
     return items;

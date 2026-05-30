@@ -55,4 +55,17 @@ class AssessmentRepositoryImpl implements AssessmentRepository {
     );
     return result.toEntity(assessment?.passingScore.toDouble() ?? 50);
   }
+
+  @override
+  Future<void> submitAssignment({
+    required String assessmentId,
+    required String filePath,
+    String content = '',
+  }) {
+    return _remote.submitAssignment(
+      assessmentId: assessmentId,
+      filePath: filePath,
+      content: content,
+    );
+  }
 }

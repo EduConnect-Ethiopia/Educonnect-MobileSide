@@ -13,7 +13,7 @@ abstract class AuthRemoteDataSource {
 
   Future<void> resetPassword({
     required String email,
-    required String token,
+    required String code,
     required String newPassword,
   });
 
@@ -58,14 +58,14 @@ class DioAuthRemoteDataSource implements AuthRemoteDataSource {
   @override
   Future<void> resetPassword({
     required String email,
-    required String token,
+    required String code,
     required String newPassword,
   }) async {
     await _dio.post<dynamic>(
       ApiEndpoints.resetPassword,
       data: {
         'email': email.trim(),
-        'token': token.trim(),
+        'code': code.trim(),
         'newPassword': newPassword,
       },
     );
@@ -73,10 +73,13 @@ class DioAuthRemoteDataSource implements AuthRemoteDataSource {
 
   @override
   Future<void> requestEmailVerification(String email) async {
-    await _dio.post<dynamic>(
+    final response = await _dio.post<dynamic>(
       ApiEndpoints.requestEmailVerification,
       data: {'email': email.trim()},
     );
+    try {
+      print('[AuthRemote] requestEmailVerification status: ${response.statusCode} body: ${response.data}');
+    } catch (_) {}
   }
 
   @override
@@ -95,9 +98,12 @@ class DioAuthRemoteDataSource implements AuthRemoteDataSource {
 
   @override
   Future<void> resendEmailVerification(String email) async {
-    await _dio.post<dynamic>(
+    final response = await _dio.post<dynamic>(
       ApiEndpoints.resendEmailVerification,
       data: {'email': email.trim()},
     );
+    try {
+      print('[AuthRemote] resendEmailVerification status: ${response.statusCode} body: ${response.data}');
+    } catch (_) {}
   }
 }

@@ -22,10 +22,19 @@ class CartController extends Notifier<CartState> {
   Future<void> loadCart() async {
     state = state.copyWith(isLoading: true);
     final items = await ref.read(cartRepositoryProvider).getCart();
+    final ids = await ref.read(cartRepositoryProvider).getCartCourseIds();
     final discount = await _local.getPromoDiscountPercent();
+
+    // If cart ids still exist but course lookup temporarily fails, keep current
+    // in-memory items so pull-to-refresh does not appear to clear the cart.
+    final resolvedItems =
+        (ids.isNotEmpty && items.isEmpty && state.items.isNotEmpty)
+            ? state.items
+            : items;
+
     state = state.copyWith(
       isLoading: false,
-      items: items,
+      items: resolvedItems,
       promoDiscountPercent: discount,
     );
   }

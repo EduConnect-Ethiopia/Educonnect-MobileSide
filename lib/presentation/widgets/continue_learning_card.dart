@@ -51,7 +51,7 @@ class ContinueLearningCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: AppColors.textHeadline,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -68,7 +68,7 @@ class ContinueLearningCard extends StatelessWidget {
                 Text(
                   '${course.progress.toStringAsFixed(0)}% complete',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSubtitle,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],

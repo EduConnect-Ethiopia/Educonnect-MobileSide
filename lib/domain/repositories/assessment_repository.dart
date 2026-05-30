@@ -8,4 +8,9 @@ abstract class AssessmentRepository {
     String assessmentId,
     Map<String, String> answers,
   );
+  Future<void> submitAssignment({
+    required String assessmentId,
+    required String filePath,
+    String content,
+  });
 }

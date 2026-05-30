@@ -32,6 +32,7 @@ class AuthState {
     this.pendingEmail,
     this.pendingPassword,
     this.verificationCooldownExpiry,
+    this.passwordResetCooldownExpiry,
   });
 
   const AuthState.unknown()
@@ -40,7 +41,8 @@ class AuthState {
       errorMessage = null,
       pendingEmail = null,
       pendingPassword = null,
-      verificationCooldownExpiry = null;
+      verificationCooldownExpiry = null,
+      passwordResetCooldownExpiry = null;
 
   final AuthStatus status;
   final AuthSession? session;
@@ -48,6 +50,7 @@ class AuthState {
   final String? pendingEmail;
   final String? pendingPassword;
   final DateTime? verificationCooldownExpiry;
+  final DateTime? passwordResetCooldownExpiry;
 
   AuthState copyWith({
     AuthStatus? status,
@@ -56,6 +59,7 @@ class AuthState {
     String? pendingEmail,
     String? pendingPassword,
     DateTime? verificationCooldownExpiry,
+    DateTime? passwordResetCooldownExpiry,
     bool clearPending = false,
   }) {
     return AuthState(
@@ -68,13 +72,16 @@ class AuthState {
           : pendingPassword ?? this.pendingPassword,
       verificationCooldownExpiry:
           verificationCooldownExpiry ?? this.verificationCooldownExpiry,
+        passwordResetCooldownExpiry:
+          passwordResetCooldownExpiry ?? this.passwordResetCooldownExpiry,
     );
   }
 }
 
 class AuthController extends Notifier<AuthState> {
   late final AuthRepository _repository;
-  static const Duration verificationCooldown = Duration(minutes: 15);
+  static const Duration verificationCooldown = Duration(minutes: 3);
+  static const Duration passwordResetCooldown = Duration(minutes: 3);
 
   @override
   AuthState build() {
@@ -99,6 +106,8 @@ class AuthController extends Notifier<AuthState> {
           errorMessage: _friendlyError(error),
           pendingEmail: email,
           pendingPassword: password,
+          verificationCooldownExpiry:
+              DateTime.now().add(verificationCooldown),
         );
         return;
       }
@@ -127,6 +136,7 @@ class AuthController extends Notifier<AuthState> {
         status: AuthStatus.emailVerificationRequired,
         pendingEmail: email,
         pendingPassword: password,
+        verificationCooldownExpiry: DateTime.now().add(verificationCooldown),
       );
     } on Exception catch (error) {
       state = AuthState(
@@ -137,11 +147,27 @@ class AuthController extends Notifier<AuthState> {
   }
 
   Future<void> requestPasswordReset(String email) async {
+    final now = DateTime.now();
+    final expiry = state.passwordResetCooldownExpiry;
+    if (expiry != null && now.isBefore(expiry)) {
+      final remaining = expiry.difference(now).inSeconds;
+      state = AuthState(
+        status: AuthStatus.failure,
+        errorMessage:
+            'Please wait $remaining seconds before requesting a new reset code.',
+        passwordResetCooldownExpiry: expiry,
+      );
+      return;
+    }
+
     state = state.copyWith(status: AuthStatus.loading);
 
     try {
       await _repository.requestPasswordReset(email);
-      state = state.copyWith(status: AuthStatus.passwordResetEmailSent);
+      state = state.copyWith(
+        status: AuthStatus.passwordResetEmailSent,
+        passwordResetCooldownExpiry: DateTime.now().add(passwordResetCooldown),
+      );
     } on Exception catch (error) {
       state = AuthState(
         status: AuthStatus.failure,
@@ -152,7 +178,7 @@ class AuthController extends Notifier<AuthState> {
 
   Future<void> resetPassword({
     required String email,
-    required String token,
+    required String code,
     required String newPassword,
   }) async {
     state = state.copyWith(status: AuthStatus.loading);
@@ -160,7 +186,7 @@ class AuthController extends Notifier<AuthState> {
     try {
       await _repository.resetPassword(
         email: email,
-        token: token,
+        code: code,
         newPassword: newPassword,
       );
       state = const AuthState(status: AuthStatus.passwordResetCompleted);
@@ -177,6 +203,7 @@ class AuthController extends Notifier<AuthState> {
     final expiry = state.verificationCooldownExpiry;
     if (expiry != null && now.isBefore(expiry)) {
       final remaining = expiry.difference(now).inSeconds;
+      print('[AuthController] requestEmailVerification blocked, remaining: $remaining s for $email');
       state = AuthState(
         status: AuthStatus.failure,
         errorMessage: 'Please wait $remaining seconds before requesting a new code.',
@@ -187,16 +214,19 @@ class AuthController extends Notifier<AuthState> {
       return;
     }
 
+    print('[AuthController] requestEmailVerification starting for $email');
     state = state.copyWith(status: AuthStatus.loading);
 
     try {
       await _repository.requestEmailVerification(email);
       final newExpiry = DateTime.now().add(verificationCooldown);
+      print('[AuthController] requestEmailVerification succeeded for $email, expiry set to $newExpiry');
       state = state.copyWith(
         status: AuthStatus.emailVerificationCodeSent,
         verificationCooldownExpiry: newExpiry,
       );
     } on Exception catch (error) {
+      print('[AuthController] requestEmailVerification failed for $email: $error');
       state = AuthState(
         status: AuthStatus.failure,
         errorMessage: _friendlyError(error),
@@ -209,6 +239,7 @@ class AuthController extends Notifier<AuthState> {
     final expiry = state.verificationCooldownExpiry;
     if (expiry != null && now.isBefore(expiry)) {
       final remaining = expiry.difference(now).inSeconds;
+      print('[AuthController] resendEmailVerification blocked, remaining: $remaining s for $email');
       state = AuthState(
         status: AuthStatus.failure,
         errorMessage: 'Please wait $remaining seconds before requesting a new code.',
@@ -219,16 +250,19 @@ class AuthController extends Notifier<AuthState> {
       return;
     }
 
+    print('[AuthController] resendEmailVerification starting for $email');
     state = state.copyWith(status: AuthStatus.loading);
 
     try {
       await _repository.resendEmailVerification(email);
       final newExpiry = DateTime.now().add(verificationCooldown);
+      print('[AuthController] resendEmailVerification succeeded for $email, expiry set to $newExpiry');
       state = state.copyWith(
         status: AuthStatus.emailVerificationCodeSent,
         verificationCooldownExpiry: newExpiry,
       );
     } on Exception catch (error) {
+      print('[AuthController] resendEmailVerification failed for $email: $error');
       state = AuthState(
         status: AuthStatus.failure,
         errorMessage: _friendlyError(error),
