@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/utils/validators.dart';
@@ -43,10 +44,12 @@ class _EmailVerificationScreenState
             .requestEmailVerification(_emailController.text);
       });
     }
+    _remainingSeconds = 0;
   }
 
   @override
   void dispose() {
+    _cooldownTimer?.cancel();
     _emailController.dispose();
     _codeController.dispose();
     super.dispose();
@@ -60,6 +63,8 @@ class _EmailVerificationScreenState
           const SnackBar(content: Text('Verification code sent.')),
         );
       }
+
+      _updateCooldownFromState(next.verificationCooldownExpiry);
 
       if (next.status == AuthStatus.authenticated) {
         if (!context.mounted) return;
@@ -127,19 +132,62 @@ class _EmailVerificationScreenState
             ),
             const SizedBox(height: 12),
             TextButton(
-              onPressed: isLoading
+              onPressed: (isLoading || _remainingSeconds > 0)
                   ? null
                   : () {
                       ref
                           .read(authControllerProvider.notifier)
                           .resendEmailVerification(_emailController.text);
                     },
-              child: const Text('Resend code'),
+                child: Text(_remainingSeconds > 0
+                  ? 'Resend code (${_formatRemaining(_remainingSeconds)})'
+                  : 'Resend code'),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Timer? _cooldownTimer;
+  int _remainingSeconds = 0;
+
+  void _updateCooldownFromState(DateTime? expiry) {
+    _cooldownTimer?.cancel();
+    if (expiry == null) {
+      if (_remainingSeconds != 0) {
+        setState(() => _remainingSeconds = 0);
+      }
+      return;
+    }
+
+    final now = DateTime.now();
+    var secs = expiry.difference(now).inSeconds;
+    if (secs <= 0) {
+      setState(() => _remainingSeconds = 0);
+      return;
+    }
+
+    setState(() => _remainingSeconds = secs);
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      final remaining = expiry.difference(DateTime.now()).inSeconds;
+      if (remaining <= 0) {
+        timer.cancel();
+        if (mounted) setState(() => _remainingSeconds = 0);
+        return;
+      }
+      if (mounted) setState(() => _remainingSeconds = remaining);
+    });
+  }
+
+  String _formatRemaining(int seconds) {
+    if (seconds <= 0) return '0s';
+    if (seconds < 60) return '${seconds}s';
+    final minutes = seconds ~/ 60;
+    final secs = seconds % 60;
+    final mm = minutes.toString().padLeft(2, '0');
+    final ss = secs.toString().padLeft(2, '0');
+    return '$mm:$ss';
   }
 
   Future<void> _confirm() async {

@@ -31,6 +31,7 @@ class AuthState {
     this.errorMessage,
     this.pendingEmail,
     this.pendingPassword,
+    this.verificationCooldownExpiry,
   });
 
   const AuthState.unknown()
@@ -38,13 +39,15 @@ class AuthState {
       session = null,
       errorMessage = null,
       pendingEmail = null,
-      pendingPassword = null;
+      pendingPassword = null,
+      verificationCooldownExpiry = null;
 
   final AuthStatus status;
   final AuthSession? session;
   final String? errorMessage;
   final String? pendingEmail;
   final String? pendingPassword;
+  final DateTime? verificationCooldownExpiry;
 
   AuthState copyWith({
     AuthStatus? status,
@@ -52,6 +55,7 @@ class AuthState {
     String? errorMessage,
     String? pendingEmail,
     String? pendingPassword,
+    DateTime? verificationCooldownExpiry,
     bool clearPending = false,
   }) {
     return AuthState(
@@ -62,12 +66,15 @@ class AuthState {
       pendingPassword: clearPending
           ? null
           : pendingPassword ?? this.pendingPassword,
+      verificationCooldownExpiry:
+          verificationCooldownExpiry ?? this.verificationCooldownExpiry,
     );
   }
 }
 
 class AuthController extends Notifier<AuthState> {
   late final AuthRepository _repository;
+  static const Duration verificationCooldown = Duration(minutes: 15);
 
   @override
   AuthState build() {
@@ -166,11 +173,29 @@ class AuthController extends Notifier<AuthState> {
   }
 
   Future<void> requestEmailVerification(String email) async {
+    final now = DateTime.now();
+    final expiry = state.verificationCooldownExpiry;
+    if (expiry != null && now.isBefore(expiry)) {
+      final remaining = expiry.difference(now).inSeconds;
+      state = AuthState(
+        status: AuthStatus.failure,
+        errorMessage: 'Please wait $remaining seconds before requesting a new code.',
+        pendingEmail: email,
+        pendingPassword: state.pendingPassword,
+        verificationCooldownExpiry: expiry,
+      );
+      return;
+    }
+
     state = state.copyWith(status: AuthStatus.loading);
 
     try {
       await _repository.requestEmailVerification(email);
-      state = state.copyWith(status: AuthStatus.emailVerificationCodeSent);
+      final newExpiry = DateTime.now().add(verificationCooldown);
+      state = state.copyWith(
+        status: AuthStatus.emailVerificationCodeSent,
+        verificationCooldownExpiry: newExpiry,
+      );
     } on Exception catch (error) {
       state = AuthState(
         status: AuthStatus.failure,
@@ -180,11 +205,29 @@ class AuthController extends Notifier<AuthState> {
   }
 
   Future<void> resendEmailVerification(String email) async {
+    final now = DateTime.now();
+    final expiry = state.verificationCooldownExpiry;
+    if (expiry != null && now.isBefore(expiry)) {
+      final remaining = expiry.difference(now).inSeconds;
+      state = AuthState(
+        status: AuthStatus.failure,
+        errorMessage: 'Please wait $remaining seconds before requesting a new code.',
+        pendingEmail: email,
+        pendingPassword: state.pendingPassword,
+        verificationCooldownExpiry: expiry,
+      );
+      return;
+    }
+
     state = state.copyWith(status: AuthStatus.loading);
 
     try {
       await _repository.resendEmailVerification(email);
-      state = state.copyWith(status: AuthStatus.emailVerificationCodeSent);
+      final newExpiry = DateTime.now().add(verificationCooldown);
+      state = state.copyWith(
+        status: AuthStatus.emailVerificationCodeSent,
+        verificationCooldownExpiry: newExpiry,
+      );
     } on Exception catch (error) {
       state = AuthState(
         status: AuthStatus.failure,

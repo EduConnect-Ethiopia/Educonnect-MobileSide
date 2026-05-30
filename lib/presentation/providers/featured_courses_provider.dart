@@ -23,9 +23,13 @@ class FeaturedCoursesController extends Notifier<FeaturedCoursesState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
+      final all = await ref.read(courseRepositoryProvider).getFeaturedCourses();
       final courses = query.isEmpty
-          ? await ref.read(courseRepositoryProvider).getFeaturedCourses()
-          : await ref.read(courseRepositoryProvider).searchCourses(query);
+          ? all
+          : all.where((c) {
+              final q = query.toLowerCase();
+              return c.title.toLowerCase().contains(q) || c.category.toLowerCase().contains(q);
+            }).toList();
       state = state.copyWith(
         isLoading: false,
         courses: courses,
