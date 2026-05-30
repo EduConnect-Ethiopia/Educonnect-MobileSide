@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,6 +13,7 @@ import 'auth/login_screen.dart';
 import 'certificates/certificate_list_screen.dart';
 import 'notifications/notification_screen.dart';
 import 'profile/edit_profile_screen.dart';
+import 'profile/faq_screen.dart';
 import 'profile/settings_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -65,6 +68,18 @@ class ProfileScreen extends ConsumerWidget {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
                       builder: (_) => const EditProfileScreen(),
+                    ),
+                  );
+                },
+              ),
+              _ProfileAction(
+                icon: Icons.help_outline,
+                title: 'Help & Support',
+                subtitle: 'FAQ and contact support',
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const FaqScreen(),
                     ),
                   );
                 },
@@ -181,6 +196,7 @@ class _ProfileHeader extends StatelessWidget {
     final initial = user.fullName.trim().isEmpty
         ? 'L'
         : user.fullName.trim().characters.first.toUpperCase();
+    final avatarBytes = profile.avatarBytes;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -194,13 +210,18 @@ class _ProfileHeader extends StatelessWidget {
           CircleAvatar(
             radius: 44,
             backgroundColor: AppColors.primary,
-            child: Text(
-              initial,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                  ),
-            ),
+            backgroundImage: avatarBytes != null
+                ? MemoryImage(Uint8List.fromList(avatarBytes))
+                : null,
+            child: avatarBytes == null
+                ? Text(
+                    initial,
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                        ),
+                  )
+                : null,
           ),
           const SizedBox(height: 12),
           Text(

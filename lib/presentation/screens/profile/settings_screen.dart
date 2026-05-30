@@ -5,6 +5,7 @@ import '../../../core/di/app_providers.dart';
 import '../../providers/auth_controller.dart';
 import '../../providers/settings_provider.dart';
 import '../auth/login_screen.dart';
+import 'faq_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -61,6 +62,26 @@ class SettingsScreen extends ConsumerWidget {
               ],
               onChanged: ref.read(settingsProvider.notifier).setVideoQuality,
             ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.help_outline),
+            title: const Text('FAQ'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const FaqScreen()),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.support_agent_outlined),
+            title: const Text('Help & Support'),
+            subtitle: const Text('support@educonnect.et'),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const FaqScreen()),
+              );
+            },
           ),
           ListTile(
             leading: const Icon(Icons.delete_outline),
