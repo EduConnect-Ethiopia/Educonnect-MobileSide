@@ -202,20 +202,25 @@ const _faqEnglish = [
   ),
 ];
 
-/// Shorter Amharic headings with English answers for key flows (expand over time).
+/// Full Amharic FAQ content used when the app language is set to Amharic.
 const _faqAmharic = [
   FaqCategory(
-    name: 'መጀመሪያ',
+    name: 'መጀመሪያ መመሪያ',
     items: [
       FaqItem(
         question: 'መለያ እንዴት እፈጥራለሁ?',
         answer:
-            'በመግቢያ ማያ ገጽ "Sign Up" ይጫኑ። ሙሉ ስም፣ ኢሜይል፣ ስልክ (አማራጭ) እና የሚያስፈልገው የይለፍ ቃል ያስገቡ። ኢሜይል ማረጋገጫ ካገኙ በኋላ ይግቡ።',
+            'በመግቢያ ገጹ ላይ «Sign Up» ይጫኑ። ሙሉ ስምዎን፣ ኢሜይልዎን፣ ስልክ ቁጥርዎን (አማራጭ) እና ጠንካራ የይለፍ ቃል ያስገቡ። ኢሜይል የማረጋገጫ መልዕክት ከደረሰዎት በኋላ መለያዎን ያግብሩ እና ይግቡ።',
       ),
       FaqItem(
         question: 'የይለፍ ቃል ረሳሁ። እንዴት እቀይራለሁ?',
         answer:
-            '"Forgot Password" ይጫኑ፣ ኢሜይልዎን ያስገቡ፣ ኮድ ይደርስዎታል፣ አዲስ የይለፍ ቃል ያስቀምጡ።',
+            'በመግቢያ ገጹ ላይ «Forgot Password» ይጫኑ። የተመዘገበውን ኢሜይልዎን ያስገቡ። የዳግም ማስቀመጫ ኮድ በኢሜይል ይደርስዎታል፤ ኮዱን አስገብተው አዲስ የይለፍ ቃል ያዘጋጁ።',
+      ),
+      FaqItem(
+        question: 'Google ወይም Facebook መለያዬን መጠቀም እችላለሁ?',
+        answer:
+            'አሁን EduConnect ኢሜይል እና የይለፍ ቃል መግቢያን ብቻ ይደግፋል። በቀጣይ ዝማኔ ማህበራዊ መግቢያዎችን ለማከል እቅድ አለን።',
       ),
     ],
   ),
@@ -224,11 +229,13 @@ const _faqAmharic = [
     items: [
       FaqItem(
         question: 'ኮርሶችን እንዴት አገኛለሁ?',
-        answer: 'የታች አሰሳ → Browse ይጠቀሙ። በቤት ገጽ ምክር የተሰጡ ኮርሶች ይታያሉ።',
+        answer:
+            'የBrowse ትርን ይጠቀሙ። በቁልፍ ቃላት ይፈልጉ እና በክፍል፣ ደረጃ፣ ዋጋ እና ደረጃ መሠረት ያጣሩ። በቤት ገጽ ላይ ከምክር ስርዓቱ የተሰጡ ግላዊ ምክሮች ይታያሉ።',
       ),
       FaqItem(
         question: 'በካርት ብዙ ኮርሶች መግዛት እችላለሁ?',
-        answer: 'አዎ። ብዙ ክፍያ የሚጠዩ ኮርሶችን ወደ ካርት ያክሉና በአንድ ጊዜ checkout ያድርጉ።',
+        answer:
+            'አዎ። ብዙ የሚከፈሉ ኮርሶችን ወደ ካርት ማከል እና በአንድ ጊዜ መክፈል ይችላሉ።',
       ),
     ],
   ),
@@ -237,7 +244,7 @@ const _faqAmharic = [
     items: [
       FaqItem(
         question: 'ድጋፍ እንዴት አገኛለሁ?',
-        answer: 'መገለጫ → Help & Support ወይም support@educonnect.et',
+        answer: 'ወደ መገለጫ ይግቡ፣ ከዚያ «Help & Support» ይምረጡ ወይም support@educonnect.et ይጻፉ።',
       ),
     ],
   ),

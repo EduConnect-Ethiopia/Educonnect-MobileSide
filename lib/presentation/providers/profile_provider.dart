@@ -25,6 +25,7 @@ class LearnerProfile {
     required this.phone,
     required this.bio,
     required this.stats,
+    this.avatarBytes,
     this.isVerified = true,
   });
 
@@ -32,6 +33,7 @@ class LearnerProfile {
   final String phone;
   final String bio;
   final ProfileStats stats;
+  final List<int>? avatarBytes;
   final bool isVerified;
 }
 
@@ -46,6 +48,7 @@ final profileProvider = FutureProvider<LearnerProfile?>((ref) async {
   final local = ref.watch(profileLocalDataSourceProvider);
   final phone = await local.getPhone() ?? '';
   final bio = await local.getBio() ?? '';
+  final avatarBytes = local.getAvatarBytes();
 
   final enrollments = await ref.watch(enrollmentRepositoryProvider).getMyEnrollments();
   final completedCourses = enrollments
@@ -64,6 +67,7 @@ final profileProvider = FutureProvider<LearnerProfile?>((ref) async {
       certificatesEarned: certificates.length,
       learningHours: completedCourses * 4,
     ),
+    avatarBytes: avatarBytes,
     isVerified: true,
   );
 });

@@ -13,20 +13,25 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
+    final isAmharic = settings.language == 'am';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(isAmharic ? 'ቅንብሮች' : 'Settings')),
       body: ListView(
         children: [
           SwitchListTile(
-            title: const Text('Dark Mode'),
-            subtitle: const Text('Switch between light and dark theme'),
+            title: Text(isAmharic ? 'ጨለማ ሁነታ' : 'Dark Mode'),
+            subtitle: Text(
+              isAmharic
+                  ? 'ብርሃን እና ጨለማ ገጽታ መካከል ይቀይሩ'
+                  : 'Switch between light and dark theme',
+            ),
             value: settings.isDarkMode,
             onChanged: (value) =>
                 ref.read(settingsProvider.notifier).toggleTheme(value),
           ),
           ListTile(
-            title: const Text('Language'),
+            title: Text(isAmharic ? 'ቋንቋ' : 'Language'),
             subtitle: Text(settings.language == 'en' ? 'English' : 'አማርኛ'),
             trailing: DropdownButton<String>(
               value: settings.language,
@@ -38,18 +43,18 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           SwitchListTile(
-            title: const Text('Push Notifications'),
+            title: Text(isAmharic ? 'የተገቢ ማሳወቂያዎች' : 'Push Notifications'),
             value: settings.notificationsEnabled,
             onChanged: ref.read(settingsProvider.notifier).toggleNotifications,
           ),
           SwitchListTile(
-            title: const Text('Download over WiFi only'),
+            title: Text(isAmharic ? 'በWi‑Fi ብቻ ይውረዱ' : 'Download over WiFi only'),
             value: settings.wifiOnlyDownload,
             onChanged:
                 ref.read(settingsProvider.notifier).toggleWifiOnlyDownload,
           ),
           ListTile(
-            title: const Text('Video Quality'),
+            title: Text(isAmharic ? 'የቪዲዮ ጥራት' : 'Video Quality'),
             trailing: DropdownButton<VideoQuality>(
               value: settings.videoQuality,
               items: const [
@@ -65,7 +70,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
           ListTile(
             leading: const Icon(Icons.help_outline),
-            title: const Text('FAQ'),
+            title: Text(isAmharic ? 'ጥያቄና መልስ' : 'FAQ'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               Navigator.of(context).push(
@@ -75,7 +80,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
           ListTile(
             leading: const Icon(Icons.support_agent_outlined),
-            title: const Text('Help & Support'),
+            title: Text(isAmharic ? 'እገዛ እና ድጋፍ' : 'Help & Support'),
             subtitle: const Text('support@educonnect.et'),
             onTap: () {
               Navigator.of(context).push(
@@ -85,18 +90,21 @@ class SettingsScreen extends ConsumerWidget {
           ),
           ListTile(
             leading: const Icon(Icons.delete_outline),
-            title: const Text('Clear Cache'),
+            title: Text(isAmharic ? 'መሸጎጫ አጥራ' : 'Clear Cache'),
             onTap: () => _clearCache(context, ref),
           ),
           ListTile(
             leading: const Icon(Icons.info_outline),
-            title: const Text('About'),
+            title: Text(isAmharic ? 'ስለ' : 'About'),
             subtitle: Text('Version ${settings.appVersion}'),
             onTap: () => _showAboutDialog(context, settings.appVersion),
           ),
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text('Logout', style: TextStyle(color: Colors.red)),
+            title: Text(
+              isAmharic ? 'ውጣ' : 'Logout',
+              style: const TextStyle(color: Colors.red),
+            ),
             onTap: () => _confirmLogout(context, ref),
           ),
         ],
@@ -112,7 +120,13 @@ class SettingsScreen extends ConsumerWidget {
     }
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Cache cleared')),
+      SnackBar(
+        content: Text(
+          ref.read(settingsProvider).language == 'am'
+              ? 'መሸጎጫ ተጠርጧል'
+              : 'Cache cleared',
+        ),
+      ),
     );
   }
 

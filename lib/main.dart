@@ -34,6 +34,10 @@ class EduConnectApp extends ConsumerWidget {
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) {
+        final locale = settings.language == 'am'
+            ? const Locale('am')
+            : const Locale('en');
+
         return MaterialApp(
           title: 'EduConnect Ethiopia',
           debugShowCheckedModeBanner: false,
@@ -41,6 +45,8 @@ class EduConnectApp extends ConsumerWidget {
           darkTheme: AppTheme.darkTheme,
           themeMode:
               settings.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          locale: locale,
+          supportedLocales: const [Locale('en'), Locale('am')],
           home: const SplashScreen(),
         );
       },

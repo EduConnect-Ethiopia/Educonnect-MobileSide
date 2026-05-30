@@ -8,6 +8,7 @@ import '../../domain/entities/course.dart';
 import '../providers/auth_controller.dart';
 import '../providers/notification_provider.dart';
 import '../providers/profile_provider.dart';
+import '../providers/settings_provider.dart';
 import 'assessments/assessments_list_screen.dart';
 import 'auth/login_screen.dart';
 import 'certificates/certificate_list_screen.dart';
@@ -23,13 +24,14 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(profileProvider);
     final notificationState = ref.watch(notificationControllerProvider);
+    final isAmharic = ref.watch(settingsProvider).language == 'am';
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: Text(isAmharic ? 'መገለጫ' : 'Profile'),
         actions: [
           IconButton(
-            tooltip: 'Notifications',
+            tooltip: isAmharic ? 'ማሳወቂያዎች' : 'Notifications',
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
@@ -47,10 +49,16 @@ class ProfileScreen extends ConsumerWidget {
       ),
       body: profileAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, _) => const Center(child: Text('Unable to load profile')),
+        error: (_, _) => Center(
+          child: Text(isAmharic ? 'መገለጫውን መጫን አልተቻለም' : 'Unable to load profile'),
+        ),
         data: (profile) {
           if (profile == null) {
-            return const Center(child: Text('Sign in to view your profile'));
+            return Center(
+              child: Text(
+                isAmharic ? 'መገለጫዎን ለማየት ይግቡ' : 'Sign in to view your profile',
+              ),
+            );
           }
 
           return ListView(
@@ -62,8 +70,10 @@ class ProfileScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               _ProfileAction(
                 icon: Icons.edit_outlined,
-                title: 'Edit Profile',
-                subtitle: 'Update phone, bio, and password',
+                title: isAmharic ? 'መገለጫ አስተካክል' : 'Edit Profile',
+                subtitle: isAmharic
+                    ? 'ስልክ፣ ባዮ እና የይለፍ ቃል አዘምን'
+                    : 'Update phone, bio, and password',
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
@@ -74,8 +84,10 @@ class ProfileScreen extends ConsumerWidget {
               ),
               _ProfileAction(
                 icon: Icons.help_outline,
-                title: 'Help & Support',
-                subtitle: 'FAQ and contact support',
+                title: isAmharic ? 'እገዛ እና ድጋፍ' : 'Help & Support',
+                subtitle: isAmharic
+                    ? 'ጥያቄና መልስ እና የድጋፍ መገኛ'
+                    : 'FAQ and contact support',
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
@@ -86,8 +98,10 @@ class ProfileScreen extends ConsumerWidget {
               ),
               _ProfileAction(
                 icon: Icons.settings_outlined,
-                title: 'Settings',
-                subtitle: 'Theme, language, and preferences',
+                title: isAmharic ? 'ቅንብሮች' : 'Settings',
+                subtitle: isAmharic
+                    ? 'ገጽታ፣ ቋንቋ እና ምርጫዎች'
+                    : 'Theme, language, and preferences',
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
@@ -98,8 +112,10 @@ class ProfileScreen extends ConsumerWidget {
               ),
               _ProfileAction(
                 icon: Icons.workspace_premium_outlined,
-                title: 'Certificates',
-                subtitle: 'View and download earned certificates',
+                title: isAmharic ? 'ሰርተፊኬቶች' : 'Certificates',
+                subtitle: isAmharic
+                    ? 'ያገኙትን ሰርተፊኬት ይመልከቱ እና ያውርዱ'
+                    : 'View and download earned certificates',
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
@@ -110,8 +126,10 @@ class ProfileScreen extends ConsumerWidget {
               ),
               _ProfileAction(
                 icon: Icons.quiz_outlined,
-                title: 'Assessments',
-                subtitle: 'Take quizzes for enrolled courses',
+                title: isAmharic ? 'ፈተናዎች' : 'Assessments',
+                subtitle: isAmharic
+                    ? 'ለተመዘገቡበት ኮርስ ፈተናዎችን ይውሰዱ'
+                    : 'Take quizzes for enrolled courses',
                 onTap: () => _openAssessments(context, ref),
               ),
               const SizedBox(height: 8),
@@ -127,7 +145,7 @@ class ProfileScreen extends ConsumerWidget {
                   );
                 },
                 icon: const Icon(Icons.logout_outlined),
-                label: const Text('Sign out'),
+                label: Text(isAmharic ? 'ውጣ' : 'Sign out'),
               ),
             ],
           );
@@ -138,11 +156,18 @@ class ProfileScreen extends ConsumerWidget {
 
   Future<void> _openAssessments(BuildContext context, WidgetRef ref) async {
     final courses = await ref.read(profileCoursesForAssessmentsProvider.future);
+    final isAmharic = ref.read(settingsProvider).language == 'am';
     if (!context.mounted) return;
 
     if (courses.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enroll in a course to take assessments')),
+        SnackBar(
+          content: Text(
+            isAmharic
+                ? 'ፈተና ለመውሰድ በአንድ ኮርስ ይመዝገቡ'
+                : 'Enroll in a course to take assessments',
+          ),
+        ),
       );
       return;
     }

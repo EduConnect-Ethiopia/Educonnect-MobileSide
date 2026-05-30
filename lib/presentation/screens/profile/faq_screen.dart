@@ -59,10 +59,13 @@ class _FaqScreenState extends ConsumerState<FaqScreen> {
   @override
   Widget build(BuildContext context) {
     final lang = ref.watch(settingsProvider).language;
+    final isAmharic = lang == 'am';
     final categories = _filterFaq(faqCategoriesForLanguage(lang), _query);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Frequently Asked Questions')),
+      appBar: AppBar(
+        title: Text(isAmharic ? 'የተደጋጋሚ ጥያቄዎች' : 'Frequently Asked Questions'),
+      ),
       body: Column(
         children: [
           Padding(
@@ -70,7 +73,7 @@ class _FaqScreenState extends ConsumerState<FaqScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search questions...',
+                hintText: isAmharic ? 'ጥያቄዎችን ይፈልጉ...' : 'Search questions...',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _query.isEmpty
                     ? null
@@ -87,12 +90,21 @@ class _FaqScreenState extends ConsumerState<FaqScreen> {
           ),
           Expanded(
             child: categories.isEmpty
-                ? const Center(child: Text('No matching questions found.'))
+                ? Center(
+                    child: Text(
+                      isAmharic
+                          ? 'የሚመሳሰሉ ጥያቄዎች አልተገኙም።'
+                          : 'No matching questions found.',
+                    ),
+                  )
                 : ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                     itemCount: categories.length,
                     itemBuilder: (context, index) =>
-                        _CategoryCard(category: categories[index]),
+                        _CategoryCard(
+                          category: categories[index],
+                          isAmharic: isAmharic,
+                        ),
                   ),
           ),
         ],
@@ -102,9 +114,10 @@ class _FaqScreenState extends ConsumerState<FaqScreen> {
 }
 
 class _CategoryCard extends StatelessWidget {
-  const _CategoryCard({required this.category});
+  const _CategoryCard({required this.category, required this.isAmharic});
 
   final FaqCategory category;
+  final bool isAmharic;
 
   @override
   Widget build(BuildContext context) {
@@ -121,7 +134,11 @@ class _CategoryCard extends StatelessWidget {
                   color: AppColors.textHeadline,
                 ),
           ),
-          subtitle: Text('${category.items.length} questions'),
+          subtitle: Text(
+            isAmharic
+                ? '${category.items.length} ጥያቄዎች'
+                : '${category.items.length} questions',
+          ),
           children: category.items
               .map((item) => _FaqItemTile(item: item))
               .toList(),
