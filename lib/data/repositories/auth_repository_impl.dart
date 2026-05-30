@@ -42,7 +42,7 @@ class AuthRepositoryImpl implements AuthRepository {
       RegisterRequest(fullName: fullName, email: email, password: password),
     );
 
-    return login(email: email, password: password);
+    return const AuthSession(accessToken: '');
   }
 
   @override
@@ -101,16 +101,41 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> requestPasswordReset(String email) async {
-    throw Exception('Password reset is coming soon.');
+    await _remoteDataSource.requestPasswordReset(email);
   }
 
   @override
   Future<void> resetPassword({
     required String email,
-    required String token,
+    required String code,
     required String newPassword,
   }) async {
-    throw Exception('Password reset is coming soon.');
+    await _remoteDataSource.resetPassword(
+      email: email,
+      code: code,
+      newPassword: newPassword,
+    );
+  }
+
+  @override
+  Future<void> requestEmailVerification(String email) async {
+    await _remoteDataSource.requestEmailVerification(email);
+  }
+
+  @override
+  Future<void> confirmEmailVerification({
+    required String email,
+    required String code,
+  }) async {
+    await _remoteDataSource.confirmEmailVerification(
+      email: email,
+      code: code,
+    );
+  }
+
+  @override
+  Future<void> resendEmailVerification(String email) async {
+    await _remoteDataSource.resendEmailVerification(email);
   }
 
   AuthSession _toSession(AuthResponse response) {

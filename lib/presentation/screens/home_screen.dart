@@ -3,9 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/di/app_providers.dart';
-import '../../data/mock/mock_courses.dart';
 import '../../domain/entities/course.dart';
+import '../providers/recommendation_provider.dart';
+import '../providers/cart_provider.dart';
+import '../providers/enrollment_provider.dart';
+import '../providers/settings_provider.dart';
 import '../../domain/entities/auth_session.dart';
+import '../screens/course_detail_screen.dart';
 import '../widgets/continue_learning_card.dart';
 import '../widgets/course_card.dart';
 import '../widgets/section_header.dart';
@@ -32,17 +36,24 @@ class HomeController extends Notifier<HomeState> {
                 .read(courseRepositoryProvider)
                 .getActiveCoursesForLearner(user.id);
 
+      List<Course> recommendations = const [];
+      try {
+        recommendations =
+            await ref.read(recommendationRepositoryProvider).getRecommendations();
+      } on Object {
+        recommendations = const [];
+      }
+
       state = state.copyWith(
         isLoading: false,
         user: user,
         inProgressCourses: inProgressCourses,
-        recommendations: mockRecommendedCourses(),
+        recommendations: recommendations,
         clearError: true,
       );
     } on Object {
       state = state.copyWith(
         isLoading: false,
-        recommendations: mockRecommendedCourses(),
         errorMessage: 'Unable to load your courses right now.',
       );
     }
@@ -95,7 +106,9 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final homeState = ref.watch(homeProvider);
-    final firstName = _firstName(homeState.user?.fullName);
+    final isAmharic = ref.watch(settingsProvider).language == 'am';
+    final myCourses = ref.watch(myCoursesProvider).value ?? const <Course>[];
+    final ownedCourseIds = myCourses.map((course) => course.id).toSet();
 
     return Scaffold(
       body: RefreshIndicator(
@@ -103,11 +116,11 @@ class HomeScreen extends ConsumerWidget {
         child: CustomScrollView(
           slivers: [
             SliverAppBar(
-              title: Text('Welcome, $firstName'),
+              title: Text(isAmharic ? 'ቤት' : 'Home'),
               floating: true,
               actions: [
                 IconButton(
-                  tooltip: 'Refresh',
+                  tooltip: isAmharic ? 'አድስ' : 'Refresh',
                   onPressed: homeState.isLoading
                       ? null
                       : () => ref.read(homeProvider.notifier).loadData(),
@@ -129,7 +142,7 @@ class HomeScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SectionHeader(title: 'Continue Learning'),
+                    SectionHeader(title: isAmharic ? 'ቀጥሎ ይማሩ' : 'Continue Learning'),
                     SizedBox(
                       height: 190,
                       child: ListView.builder(
@@ -157,9 +170,39 @@ class HomeScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SectionHeader(title: 'Recommended for You'),
+                  SectionHeader(title: isAmharic ? 'ለእርስዎ የተመከሩ' : 'Recommended for You'),
                   ...homeState.recommendations.map(
-                    (course) => CourseCard(course: course),
+                    (course) {
+                      final isOwned = ownedCourseIds.contains(course.id) ||
+                          course.enrollmentId != null;
+                      return CourseCard(
+                        course: course,
+                        onTap: () {
+                          ref
+                              .read(recommendationControllerProvider)
+                              .trackView(course.id, category: course.category);
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => CourseDetailScreen(course: course),
+                            ),
+                          );
+                        },
+                        showActionButton: !isOwned,
+                        actionLabel: 'Buy',
+                        onActionPressed: () {
+                          ref.read(cartControllerProvider.notifier).addToCart(course);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                isAmharic
+                                    ? 'ኮርሱ ወደ ካርት ታክሏል'
+                                    : 'Course added to cart',
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
                   ),
                   const SizedBox(height: 20),
                 ],
@@ -212,12 +255,17 @@ class _EmptyLearningState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE0E0E0)),
+        border: Border.all(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF333333)
+              : const Color(0xFFE0E0E0),
+        ),
       ),
       child: Row(
         children: [
@@ -241,14 +289,16 @@ class _EmptyLearningState extends StatelessWidget {
                 Text(
                   'No active courses yet',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: AppColors.textHeadline,
+                    color: colorScheme.onSurface,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Explore recommended courses while catalog APIs are being prepared.',
-                  style: Theme.of(context).textTheme.bodySmall,
+                  'Explore recommended courses to start your learning journey.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                 ),
               ],
             ),

@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../core/constants/app_colors.dart';
-import '../../core/utils/validators.dart';
-import '../providers/auth_controller.dart';
-import '../widgets/auth_submit_button.dart';
-import '../widgets/auth_text_field.dart';
-import 'login_screen.dart';
+import '../../../core/utils/validators.dart';
+import '../../providers/auth_controller.dart';
+import '../../widgets/auth_submit_button.dart';
+import '../../widgets/auth_text_field.dart';
+import 'email_verification_screen.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
@@ -39,17 +38,23 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     ref.listen<AuthState>(authControllerProvider, (previous, next) {
-      if (next.isAuthenticated && next.user != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Account created and signed in successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        // TODO: Navigate to home screen
+      if (!(ModalRoute.of(context)?.isCurrent ?? false)) {
+        return;
       }
 
-      if (next.errorMessage != null) {
+      if (next.status == AuthStatus.emailVerificationRequired &&
+          previous?.status != AuthStatus.emailVerificationRequired) {
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => EmailVerificationScreen(
+              email: next.pendingEmail ?? _emailController.text,
+              password: next.pendingPassword ?? _passwordController.text,
+            ),
+          ),
+        );
+      }
+
+      if (next.status == AuthStatus.failure && next.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(next.errorMessage!),
@@ -59,8 +64,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       }
     });
 
-    final authState = ref.watch(authControllerProvider);
-    final isLoading = authState.isLoading;
+    final isLoading =
+        ref.watch(authControllerProvider).status == AuthStatus.loading;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
@@ -246,11 +251,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       return;
     }
 
-    ref.read(authControllerProvider.notifier).signUp(
-      fullName: _fullNameController.text.trim(),
-      email: _emailController.text.trim(),
-      password: _passwordController.text,
-      phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
-    );
+    ref.read(authControllerProvider.notifier).register(
+          fullName: _fullNameController.text.trim(),
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
   }
 }

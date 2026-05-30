@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../domain/entities/assessment.dart';
 import '../../domain/entities/course.dart';
 import '../../domain/entities/course_content.dart';
 import '../../domain/entities/course_session.dart';
+import '../providers/cart_provider.dart';
+import '../providers/assessment_provider.dart';
 import '../providers/course_detail_provider.dart';
 import '../providers/enrollment_provider.dart';
+import 'assessments/assignment_submission_screen.dart';
+import 'courses/course_player_screen.dart';
 
 class CourseDetailScreen extends ConsumerWidget {
   const CourseDetailScreen({required this.course, super.key});
@@ -17,6 +23,7 @@ class CourseDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final contentAsync = ref.watch(courseContentAsyncProvider(course.id));
     final sessionsAsync = ref.watch(courseSessionsAsyncProvider(course.id));
+    final assessmentsAsync = ref.watch(upcomingAssessmentsProvider(course.id));
     final enrollmentState = ref.watch(enrollmentControllerProvider);
 
     return Scaffold(
@@ -51,12 +58,11 @@ class CourseDetailScreen extends ConsumerWidget {
               // Course Header
               _CourseHeader(course: course),
 
-              // Enrollment Button
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: _EnrollButton(
+                child: _CourseActions(
                   course: course,
-                  onEnroll: () => _handleEnrollment(context, enrollmentState),
+                  enrollmentState: enrollmentState,
                 ),
               ),
 
@@ -71,9 +77,19 @@ class CourseDetailScreen extends ConsumerWidget {
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 16),
-                    ...content.modules.map((module) {
-                      return _ModuleListTile(module: module);
-                    }),
+                    if (content.modules.isEmpty)
+                      Text(
+                        'No modules available yet.',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      )
+                    else
+                      ...content.modules.map((module) {
+                        return _ModuleListTile(
+                          module: module,
+                          course: course,
+                          content: content,
+                        );
+                      }),
                   ],
                 ),
               ),
@@ -113,6 +129,82 @@ class CourseDetailScreen extends ConsumerWidget {
                 },
               ),
 
+              assessmentsAsync.when(
+                loading: () => const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: SizedBox(
+                    height: 40,
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                ),
+                error: (_, __) => const SizedBox.shrink(),
+                data: (assessments) {
+                  final assignments = assessments
+                      .where((assessment) => assessment.isAssignment)
+                      .toList();
+                  if (assignments.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+
+                  final canAccessAssignments =
+                      course.isFree || course.enrollmentId != null;
+
+                  return Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Assignments',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: 12),
+                        ...assignments.map((assignment) {
+                          return Card(
+                            child: ListTile(
+                              leading: Icon(
+                                canAccessAssignments
+                                    ? Icons.assignment_outlined
+                                    : Icons.lock_outline,
+                                color: canAccessAssignments
+                                    ? AppColors.primary
+                                    : Colors.grey,
+                              ),
+                              title: Text(assignment.title),
+                              subtitle: Text(
+                                assignment.dueDate != null
+                                    ? 'Due ${assignment.dueDate!.day}/${assignment.dueDate!.month}/${assignment.dueDate!.year}'
+                                    : 'No deadline set',
+                              ),
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: canAccessAssignments
+                                  ? () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) => AssignmentSubmissionScreen(
+                                            assessment: assignment,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  : null,
+                            ),
+                          );
+                        }),
+                        if (!canAccessAssignments)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 8),
+                            child: Text(
+                              'Buy or enroll in this course to submit assignment PDFs.',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+
               const SizedBox(height: 32),
             ],
           ),
@@ -121,58 +213,108 @@ class CourseDetailScreen extends ConsumerWidget {
     );
   }
 
-  void _handleEnrollment(
-    BuildContext context,
-    EnrollmentState enrollmentState,
-  ) {
-    if (course.price > 0) {
-      _showEnrollmentDialog(context);
-    } else {
-      _performEnroll();
-    }
-  }
+}
 
-  void _showEnrollmentDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Enroll in Course'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Course: ${course.title}'),
-            const SizedBox(height: 8),
-            Text(
-              'Price: ${course.price.toStringAsFixed(0)} ETB',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: AppColors.primary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text('Payment integration coming soon. For now, click "Proceed" to mock enrollment.'),
-          ],
+class _CourseActions extends ConsumerWidget {
+  const _CourseActions({
+    required this.course,
+    required this.enrollmentState,
+  });
+
+  final Course course;
+  final EnrollmentState enrollmentState;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (course.enrollmentId != null) {
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () {
+            final content = ref.read(courseContentAsyncProvider(course.id)).value;
+            if (content != null && content.modules.isNotEmpty && content.modules.first.lessons.isNotEmpty) {
+              final lesson = content.modules.first.lessons.first;
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => CoursePlayerScreen(
+                    course: course,
+                    enrollmentId: course.enrollmentId ?? 'local',
+                    initialLesson: lesson,
+                  ),
+                ),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Select a lesson below to resume learning.')),
+              );
+            }
+          },
+          icon: const Icon(Icons.play_circle_fill),
+          label: const Text('Continue Learning'),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              _performEnroll();
-            },
-            child: const Text('Proceed'),
-          ),
-        ],
-      ),
-    );
-  }
+      );
+    }
 
-  void _performEnroll() {
-    // Enrollment will be handled by the provider
+    return Column(
+      children: [
+        if (!course.isFree) ...[
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () async {
+                await ref.read(cartControllerProvider.notifier).addToCart(course);
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Added to cart')),
+                );
+              },
+              icon: const Icon(Icons.shopping_cart_outlined),
+              label: const Text('Add to Cart'),
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: enrollmentState.isEnrolling
+                ? null
+                : () async {
+                    if (course.price > 0 && !course.isFree) {
+                      await ref
+                          .read(cartControllerProvider.notifier)
+                          .addToCart(course);
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Added to cart — proceed to checkout'),
+                        ),
+                      );
+                      return;
+                    }
+                    await ref
+                        .read(enrollmentControllerProvider.notifier)
+                        .enrollCourse(course.id);
+                    if (!context.mounted) return;
+                    final msg = ref.read(enrollmentControllerProvider).successMessage;
+                    if (msg != null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(msg)),
+                      );
+                    }
+                  },
+            icon: enrollmentState.isEnrolling
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.add_circle_outline),
+            label: Text(course.isFree ? 'Enroll Free' : 'Buy / Enroll'),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -220,35 +362,16 @@ class _CourseHeader extends StatelessWidget {
   }
 }
 
-class _EnrollButton extends StatelessWidget {
-  const _EnrollButton({
+class _ModuleListTile extends StatefulWidget {
+  const _ModuleListTile({
+    required this.module,
     required this.course,
-    required this.onEnroll,
+    required this.content,
   });
 
-  final Course course;
-  final VoidCallback onEnroll;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: onEnroll,
-        icon: const Icon(Icons.add_circle_outline),
-        label: const Text('Enroll Now'),
-        style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-        ),
-      ),
-    );
-  }
-}
-
-class _ModuleListTile extends StatefulWidget {
-  const _ModuleListTile({required this.module});
-
   final Module module;
+  final Course course;
+  final CourseContent content;
 
   @override
   State<_ModuleListTile> createState() => _ModuleListTileState();
@@ -257,43 +380,79 @@ class _ModuleListTile extends StatefulWidget {
 class _ModuleListTileState extends State<_ModuleListTile> {
   @override
   Widget build(BuildContext context) {
+    final hasAccess = widget.course.isFree || widget.course.enrollmentId != null;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ExpansionTile(
-        title: Text(
-          widget.module.title,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                widget.module.title,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+            ),
+            if (!hasAccess)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.lock_outline, size: 14, color: Colors.grey),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Locked',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: Colors.grey,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
         ),
         subtitle: Text(
           '${widget.module.lessons.length} lessons',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: AppColors.textSubtitle,
-          ),
+                color: AppColors.textSubtitle,
+              ),
         ),
         children: [
           ...widget.module.lessons.map((lesson) {
-            return Padding(
-              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    lesson.title,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${lesson.materials.length} materials',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppColors.textSubtitle,
-                    ),
-                  ),
-                ],
-              ),
+            return ListTile(
+              dense: true,
+              title: Text(lesson.title),
+              subtitle: Text('${lesson.materials.length} materials'),
+              trailing: hasAccess
+                  ? const Icon(Icons.play_circle_outline, size: 20)
+                  : const Icon(Icons.lock, size: 20, color: Colors.grey),
+              enabled: hasAccess,
+              onTap: hasAccess
+                  ? () {
+                      final enrollmentId = widget.course.enrollmentId ?? 'local';
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => CoursePlayerScreen(
+                            course: widget.course,
+                            enrollmentId: enrollmentId,
+                            initialLesson: lesson,
+                          ),
+                        ),
+                      );
+                    }
+                  : () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('This content is locked. Purchase the course to access.'),
+                        ),
+                      );
+                    },
             );
           }),
           const SizedBox(height: 8),
@@ -361,7 +520,7 @@ class _SessionCard extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () => _openMeetingUrl(session.meetingUrl),
+                onPressed: () async => _openMeetingUrl(session.meetingUrl),
                 icon: const Icon(Icons.video_call_outlined, size: 18),
                 label: const Text('Join Session'),
                 style: ElevatedButton.styleFrom(
@@ -386,14 +545,11 @@ class _SessionCard extends StatelessWidget {
     return '${dateTime.day}/${dateTime.month}/${dateTime.year} at ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 
-  void _openMeetingUrl(String meetingUrl) {
-    if (meetingUrl.isEmpty) {
-      return;
+  Future<void> _openMeetingUrl(String meetingUrl) async {
+    if (meetingUrl.isEmpty) return;
+    final uri = Uri.parse(meetingUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
-    // For now, show the URL. Later integrate with url_launcher package
-    // final url = Uri.parse(meetingUrl);
-    // if (await canLaunchUrl(url)) {
-    //   await launchUrl(url, mode: LaunchMode.externalApplication);
-    // }
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../domain/entities/course.dart';
+import '../screens/course_detail_screen.dart';
 
 class ContinueLearningCard extends StatelessWidget {
   const ContinueLearningCard({required this.course, this.onTap, super.key});
@@ -19,12 +20,11 @@ class ContinueLearningCard extends StatelessWidget {
         margin: const EdgeInsets.only(left: 16, right: 4, bottom: 8),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap:
-              onTap ??
+          onTap: onTap ??
               () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Course lessons are coming soon.'),
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => CourseDetailScreen(course: course),
                   ),
                 );
               },
@@ -51,7 +51,7 @@ class ContinueLearningCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: AppColors.textHeadline,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -68,7 +68,7 @@ class ContinueLearningCard extends StatelessWidget {
                 Text(
                   '${course.progress.toStringAsFixed(0)}% complete',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSubtitle,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],

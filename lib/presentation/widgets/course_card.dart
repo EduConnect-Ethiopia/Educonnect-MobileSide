@@ -9,12 +9,18 @@ class CourseCard extends StatelessWidget {
     required this.course,
     this.showProgress = false,
     this.onTap,
+    this.showActionButton = false,
+    this.actionLabel,
+    this.onActionPressed,
     super.key,
   });
 
   final Course course;
   final bool showProgress;
   final VoidCallback? onTap;
+  final bool showActionButton;
+  final String? actionLabel;
+  final VoidCallback? onActionPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +47,7 @@ class CourseCard extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: AppColors.textHeadline,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -51,7 +57,7 @@ class CourseCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSubtitle,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                       const Spacer(),
@@ -68,6 +74,24 @@ class CourseCard extends StatelessWidget {
                                   value: progress,
                                   backgroundColor: const Color(0xFFE8EEF2),
                                 ),
+                              ),
+                            ),
+                          ],
+                          if (showActionButton) ...[
+                            const Spacer(),
+                            TextButton(
+                              onPressed: onActionPressed,
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                minimumSize: const Size(0, 30),
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              child: Text(
+                                actionLabel ?? (course.isFree ? 'Enroll' : 'Buy'),
                               ),
                             ),
                           ],
@@ -154,7 +178,7 @@ class _PriceBadge extends StatelessWidget {
     return Text(
       '$price ETB',
       style: Theme.of(context).textTheme.labelLarge?.copyWith(
-        color: AppColors.textHeadline,
+        color: Theme.of(context).colorScheme.onSurface,
         fontWeight: FontWeight.w800,
       ),
     );

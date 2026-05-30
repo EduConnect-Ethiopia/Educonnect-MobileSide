@@ -3,27 +3,33 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/di/app_providers.dart';
 import '../../domain/entities/course.dart';
 
-final publishedCoursesProvider = FutureProvider<List<Course>>((ref) async {
-  return ref.watch(courseRepositoryProvider).getPublishedCourses();
+final featuredCoursesProvider = FutureProvider<List<Course>>((ref) async {
+  return ref.watch(courseRepositoryProvider).getFeaturedCourses();
 });
 
-final publishedCoursesControllerProvider =
-    NotifierProvider<PublishedCoursesController, PublishedCoursesState>(
-  PublishedCoursesController.new,
+final featuredCoursesControllerProvider =
+    NotifierProvider<FeaturedCoursesController, FeaturedCoursesState>(
+  FeaturedCoursesController.new,
 );
 
-class PublishedCoursesController extends Notifier<PublishedCoursesState> {
+class FeaturedCoursesController extends Notifier<FeaturedCoursesState> {
   @override
-  PublishedCoursesState build() {
+  FeaturedCoursesState build() {
     Future<void>.microtask(loadCourses);
-    return PublishedCoursesState.initial();
+    return FeaturedCoursesState.initial();
   }
 
-  Future<void> loadCourses() async {
+  Future<void> loadCourses({String query = ''}) async {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      final courses = await ref.read(courseRepositoryProvider).getPublishedCourses();
+      final all = await ref.read(courseRepositoryProvider).getFeaturedCourses();
+      final courses = query.isEmpty
+          ? all
+          : all.where((c) {
+              final q = query.toLowerCase();
+              return c.title.toLowerCase().contains(q) || c.category.toLowerCase().contains(q);
+            }).toList();
       state = state.copyWith(
         isLoading: false,
         courses: courses,
@@ -38,14 +44,14 @@ class PublishedCoursesController extends Notifier<PublishedCoursesState> {
   }
 }
 
-class PublishedCoursesState {
-  const PublishedCoursesState({
+class FeaturedCoursesState {
+  const FeaturedCoursesState({
     required this.isLoading,
     required this.courses,
     this.errorMessage,
   });
 
-  const PublishedCoursesState.initial()
+  const FeaturedCoursesState.initial()
     : isLoading = false,
       courses = const [],
       errorMessage = null;
@@ -54,13 +60,13 @@ class PublishedCoursesState {
   final List<Course> courses;
   final String? errorMessage;
 
-  PublishedCoursesState copyWith({
+  FeaturedCoursesState copyWith({
     bool? isLoading,
     List<Course>? courses,
     String? errorMessage,
     bool clearError = false,
   }) {
-    return PublishedCoursesState(
+    return FeaturedCoursesState(
       isLoading: isLoading ?? this.isLoading,
       courses: courses ?? this.courses,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,

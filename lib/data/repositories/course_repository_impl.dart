@@ -19,9 +19,24 @@ class CourseRepositoryImpl implements CourseRepository {
   }
 
   @override
-  Future<List<Course>> getPublishedCourses() async {
-    final courses = await _remoteDataSource.getPublishedCourses();
+  Future<List<Course>> getFeaturedCourses() async {
+    final courses = await _remoteDataSource.getFeaturedCourses();
     return courses.map((c) => c.toEntity()).toList();
+  }
+
+  @override
+  Future<List<Course>> searchCourses(String query) async {
+    final courses = await _remoteDataSource.searchCourses(query);
+    final q = query.trim().toLowerCase();
+    final filtered = q.isEmpty
+      ? courses
+      : courses.where((c) {
+        final title = c.title.toLowerCase();
+        final category = c.category.toLowerCase();
+        return title.contains(q) || category.contains(q);
+        }).toList();
+
+    return filtered.map((c) => c.toEntity()).toList();
   }
 
   @override
@@ -50,6 +65,11 @@ class CourseRepositoryImpl implements CourseRepository {
   Future<List<CourseSession>> getCourseSessions(String courseId) async {
     final sessions = await _remoteDataSource.getCourseSessions(courseId);
     return sessions.map((s) => s.toEntity()).toList();
+  }
+
+  @override
+  Future<String> getMaterialAccessUrl(String materialId) async {
+    return _remoteDataSource.getMaterialAccessUrl(materialId);
   }
 
   Future<Course?> _courseForEnrollment(EnrollmentModel enrollment) async {

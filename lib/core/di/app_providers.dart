@@ -5,13 +5,35 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/datasources/auth_remote_data_source.dart';
 import '../../data/datasources/course_remote_data_source.dart';
 import '../../data/datasources/enrollment_remote_data_source.dart';
+import '../../data/datasources/local/cart_local_data_source.dart';
+import '../../data/datasources/local/progress_local_data_source.dart';
+import '../../data/datasources/remote/assessment_remote_data_source.dart';
+import '../../data/datasources/remote/certificate_remote_data_source.dart';
+import '../../data/datasources/remote/notification_remote_data_source.dart';
+import '../../data/datasources/remote/payment_api.dart';
+import '../../data/datasources/remote/progress_remote_data_source.dart';
+import '../../data/datasources/remote/recommendation_remote_data_source.dart';
 import '../../data/datasources/session_remote_data_source.dart';
+import '../../data/repositories/assessment_repository_impl.dart';
 import '../../data/repositories/auth_repository_impl.dart';
+import '../../data/repositories/cart_repository_impl.dart';
+import '../../data/repositories/certificate_repository_impl.dart';
 import '../../data/repositories/course_repository_impl.dart';
 import '../../data/repositories/enrollment_repository_impl.dart';
+import '../../data/repositories/notification_repository_impl.dart';
+import '../../data/repositories/payment_repository_impl.dart';
+import '../../data/repositories/progress_repository_impl.dart';
+import '../../data/repositories/recommendation_repository_impl.dart';
+import '../../domain/repositories/assessment_repository.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../domain/repositories/cart_repository.dart';
+import '../../domain/repositories/certificate_repository.dart';
 import '../../domain/repositories/course_repository.dart';
 import '../../domain/repositories/enrollment_repository.dart';
+import '../../domain/repositories/notification_repository.dart';
+import '../../domain/repositories/payment_repository.dart';
+import '../../domain/repositories/progress_repository.dart';
+import '../../domain/repositories/recommendation_repository.dart';
 import '../network/dio_client.dart';
 import '../storage/token_storage.dart';
 
@@ -50,7 +72,8 @@ final courseRepositoryProvider = Provider<CourseRepository>((ref) {
   );
 });
 
-final enrollmentRemoteDataSourceProvider = Provider<EnrollmentRemoteDataSource>((ref) {
+final enrollmentRemoteDataSourceProvider =
+    Provider<EnrollmentRemoteDataSource>((ref) {
   return DioEnrollmentRemoteDataSource(ref.watch(dioProvider));
 });
 
@@ -66,4 +89,84 @@ final sessionRemoteDataSourceProvider = Provider<SessionRemoteDataSource>((ref) 
 
 final appStartupProvider = FutureProvider<bool>((ref) {
   return ref.watch(authRepositoryProvider).isAuthenticated();
+});
+
+final progressLocalDataSourceProvider = Provider<ProgressLocalDataSource>((ref) {
+  return ProgressLocalDataSource(ref.watch(sharedPreferencesProvider));
+});
+
+final progressRemoteDataSourceProvider =
+    Provider<ProgressRemoteDataSource>((ref) {
+  return DioProgressRemoteDataSource(ref.watch(dioProvider));
+});
+
+final progressRepositoryProvider = Provider<ProgressRepository>((ref) {
+  return ProgressRepositoryImpl(
+    ref.watch(progressRemoteDataSourceProvider),
+    ref.watch(progressLocalDataSourceProvider),
+  );
+});
+
+final cartLocalDataSourceProvider = Provider<CartLocalDataSource>((ref) {
+  return CartLocalDataSource(ref.watch(sharedPreferencesProvider));
+});
+
+final cartRepositoryProvider = Provider<CartRepository>((ref) {
+  return CartRepositoryImpl(
+    localDataSource: ref.watch(cartLocalDataSourceProvider),
+    courseRepository: ref.watch(courseRepositoryProvider),
+  );
+});
+
+final paymentApiProvider = Provider<PaymentApi>((ref) {
+  return PaymentApi(ref.watch(dioProvider));
+});
+
+final paymentRepositoryProvider = Provider<PaymentRepository>((ref) {
+  return PaymentRepositoryImpl(paymentApi: ref.watch(paymentApiProvider));
+});
+
+final certificateRemoteDataSourceProvider =
+    Provider<CertificateRemoteDataSource>((ref) {
+  return DioCertificateRemoteDataSource(ref.watch(dioProvider));
+});
+
+final certificateRepositoryProvider = Provider<CertificateRepository>((ref) {
+  return CertificateRepositoryImpl(
+    remoteDataSource: ref.watch(certificateRemoteDataSourceProvider),
+    courseRepository: ref.watch(courseRepositoryProvider),
+    authRepository: ref.watch(authRepositoryProvider),
+  );
+});
+
+final assessmentRemoteDataSourceProvider =
+    Provider<AssessmentRemoteDataSource>((ref) {
+  return DioAssessmentRemoteDataSource(ref.watch(dioProvider));
+});
+
+final assessmentRepositoryProvider = Provider<AssessmentRepository>((ref) {
+  return AssessmentRepositoryImpl(ref.watch(assessmentRemoteDataSourceProvider));
+});
+
+final notificationRemoteDataSourceProvider =
+    Provider<NotificationRemoteDataSource>((ref) {
+  return DioNotificationRemoteDataSource(ref.watch(dioProvider));
+});
+
+final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
+  return NotificationRepositoryImpl(
+    ref.watch(notificationRemoteDataSourceProvider),
+  );
+});
+
+final recommendationRemoteDataSourceProvider =
+    Provider<RecommendationRemoteDataSource>((ref) {
+  return DioRecommendationRemoteDataSource(ref.watch(dioProvider));
+});
+
+final recommendationRepositoryProvider =
+    Provider<RecommendationRepository>((ref) {
+  return RecommendationRepositoryImpl(
+    ref.watch(recommendationRemoteDataSourceProvider),
+  );
 });

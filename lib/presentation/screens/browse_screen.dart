@@ -1,40 +1,95 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/utils/search_debouncer.dart';
 import '../../domain/entities/course.dart';
-import '../providers/published_courses_provider.dart';
+import '../providers/featured_courses_provider.dart';
+import '../providers/recommendation_provider.dart';
+import '../providers/settings_provider.dart';
+import '../providers/cart_provider.dart';
+import '../providers/enrollment_provider.dart';
 import '../widgets/section_header.dart';
+import 'course_detail_screen.dart';
 
-class BrowseScreen extends ConsumerWidget {
+class BrowseScreen extends ConsumerStatefulWidget {
   const BrowseScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(publishedCoursesControllerProvider);
+  ConsumerState<BrowseScreen> createState() => _BrowseScreenState();
+}
+
+class _BrowseScreenState extends ConsumerState<BrowseScreen> {
+  final _searchController = TextEditingController();
+  final _debouncer = SearchDebouncer();
+  String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    _debouncer.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    _debouncer.run(() {
+      if (!mounted) return;
+      final query = _searchController.text.trim();
+      setState(() => _query = query);
+      ref.read(featuredCoursesControllerProvider.notifier).loadCourses(query: query);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(featuredCoursesControllerProvider);
+    final courses = state.courses;
+    final isAmharic = ref.watch(settingsProvider).language == 'am';
+    final myCourses = ref.watch(myCoursesProvider).value ?? const <Course>[];
+    final ownedCourseIds = myCourses.map((course) => course.id).toSet();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Browse Courses')),
+      appBar: AppBar(
+        title: Text(isAmharic ? 'ይፈልጉ' : 'Browse'),
+        actions: [
+          IconButton(
+            tooltip: isAmharic ? 'አድስ' : 'Refresh',
+            onPressed: state.isLoading
+                ? null
+                : () => ref
+                    .read(featuredCoursesControllerProvider.notifier)
+                    .loadCourses(query: _query),
+            icon: const Icon(Icons.refresh_outlined),
+          ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: () =>
-            ref.read(publishedCoursesControllerProvider.notifier).loadCourses(),
+            ref.read(featuredCoursesControllerProvider.notifier).loadCourses(query: _query),
         child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: TextField(
-                  enabled: false,
+                  controller: _searchController,
                   decoration: InputDecoration(
                     hintText: 'Search courses',
                     prefixIcon: const Icon(Icons.search_outlined),
-                    suffixIcon: Tooltip(
-                      message: 'Search coming soon',
-                      child: Icon(
-                        Icons.info_outline,
-                        color: AppColors.textSubtitle.withValues(alpha: 0.7),
-                      ),
-                    ),
+                    suffixIcon: _query.isEmpty
+                        ? null
+                        : IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () => _searchController.clear(),
+                          ),
                   ),
                 ),
               ),
@@ -48,9 +103,13 @@ class BrowseScreen extends ConsumerWidget {
               ),
             if (state.isLoading && state.courses.isEmpty)
               const SliverToBoxAdapter(child: LinearProgressIndicator()),
-            if (state.courses.isNotEmpty) ...[
-              const SliverToBoxAdapter(
-                child: SectionHeader(title: 'Available Courses'),
+            if (courses.isNotEmpty) ...[
+              SliverToBoxAdapter(
+                child: SectionHeader(
+                  title: _query.isEmpty
+                      ? 'Available Courses'
+                      : 'Results (${courses.length})',
+                ),
               ),
               SliverGrid(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -61,10 +120,12 @@ class BrowseScreen extends ConsumerWidget {
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
-                    final course = state.courses[index];
-                    return _CourseGridCard(course: course);
+                    final course = courses[index];
+                    final isOwned =
+                        ownedCourseIds.contains(course.id) || course.enrollmentId != null;
+                    return _CourseGridCard(course: course, showBuyButton: !isOwned);
                   },
-                  childCount: state.courses.length,
+                  childCount: courses.length,
                 ),
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 16)),
@@ -74,10 +135,12 @@ class BrowseScreen extends ConsumerWidget {
                   padding: const EdgeInsets.all(16),
                   child: Center(
                     child: Text(
-                      'No courses available yet.',
+                      _query.isEmpty
+                          ? 'No courses available yet.'
+                          : 'No courses match your search.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSubtitle,
-                      ),
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                     ),
                   ),
                 ),
@@ -90,29 +153,32 @@ class BrowseScreen extends ConsumerWidget {
 }
 
 class _CourseGridCard extends ConsumerWidget {
-  const _CourseGridCard({required this.course});
+  const _CourseGridCard({required this.course, required this.showBuyButton});
 
   final Course course;
+  final bool showBuyButton;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    void openCourseDetail() {
+      ref
+          .read(recommendationControllerProvider)
+          .trackView(course.id, category: course.category);
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => CourseDetailScreen(course: course),
+        ),
+      );
+    }
+
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => _navigateToCourseDetail(context, course),
+        onTap: openCourseDetail,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: double.infinity,
-              height: 120,
-              color: AppColors.primary.withValues(alpha: 0.12),
-              child: const Icon(
-                Icons.school_outlined,
-                size: 40,
-                color: AppColors.primary,
-              ),
-            ),
+            _CourseGridThumbnail(course: course),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(8),
@@ -124,9 +190,9 @@ class _CourseGridCard extends ConsumerWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: AppColors.textHeadline,
-                        fontWeight: FontWeight.w700,
-                      ),
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontWeight: FontWeight.w700,
+                          ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -134,8 +200,8 @@ class _CourseGridCard extends ConsumerWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSubtitle,
-                      ),
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                     ),
                     const Spacer(),
                     Row(
@@ -152,10 +218,13 @@ class _CourseGridCard extends ConsumerWidget {
                             ),
                             child: Text(
                               'Free',
-                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                color: AppColors.secondary,
-                                fontWeight: FontWeight.w700,
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
+                                    color: AppColors.secondary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                             ),
                           )
                         else
@@ -170,11 +239,34 @@ class _CourseGridCard extends ConsumerWidget {
                             ),
                             child: Text(
                               '${course.price.toStringAsFixed(0)} ETB',
-                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w700,
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                             ),
+                          ),
+                        const Spacer(),
+                        if (showBuyButton)
+                          OutlinedButton(
+                            onPressed: () {
+                              ref.read(cartControllerProvider.notifier).addToCart(course);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Course added to cart')),
+                              );
+                            },
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 0,
+                              ),
+                              minimumSize: const Size(0, 28),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            child: const Text('Buy'),
                           ),
                       ],
                     ),
@@ -187,12 +279,36 @@ class _CourseGridCard extends ConsumerWidget {
       ),
     );
   }
+}
 
-  void _navigateToCourseDetail(BuildContext context, Course course) {
-    // Navigate to course detail screen
-    // TODO: Implement navigation to CourseDetailScreen
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Opening ${course.title}...')),
+class _CourseGridThumbnail extends StatelessWidget {
+  const _CourseGridThumbnail({required this.course});
+
+  final Course course;
+
+  @override
+  Widget build(BuildContext context) {
+    final thumbnailUrl = course.thumbnailUrl;
+
+    return Container(
+      width: double.infinity,
+      height: 120,
+      color: AppColors.primary.withValues(alpha: 0.12),
+      child: thumbnailUrl == null || thumbnailUrl.isEmpty
+          ? const Icon(
+              Icons.school_outlined,
+              size: 40,
+              color: AppColors.primary,
+            )
+          : CachedNetworkImage(
+              imageUrl: thumbnailUrl,
+              fit: BoxFit.cover,
+              errorWidget: (_, _, _) => const Icon(
+                Icons.school_outlined,
+                size: 40,
+                color: AppColors.primary,
+              ),
+            ),
     );
   }
 }

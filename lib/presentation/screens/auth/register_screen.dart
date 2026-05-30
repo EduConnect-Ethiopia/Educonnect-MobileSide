@@ -6,7 +6,7 @@ import '../../providers/auth_controller.dart';
 import '../../widgets/auth_scaffold.dart';
 import '../../widgets/auth_submit_button.dart';
 import '../../widgets/auth_text_field.dart';
-import '../main_navigation_screen.dart';
+import 'email_verification_screen.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -32,10 +32,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     ref.listen<AuthState>(authControllerProvider, (previous, next) {
-      if (next.status == AuthStatus.authenticated) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute<void>(builder: (_) => const MainNavigationScreen()),
-          (_) => false,
+      if (!(ModalRoute.of(context)?.isCurrent ?? false)) {
+        return;
+      }
+
+      if (next.status == AuthStatus.emailVerificationRequired &&
+          previous?.status != AuthStatus.emailVerificationRequired) {
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => EmailVerificationScreen(
+              email: next.pendingEmail ?? _emailController.text,
+              password: next.pendingPassword ?? _passwordController.text,
+            ),
+          ),
         );
       }
 
