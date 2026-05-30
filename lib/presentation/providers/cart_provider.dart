@@ -59,13 +59,17 @@ class CartController extends Notifier<CartState> {
     if (state.items.isEmpty) return false;
 
     state = state.copyWith(isProcessing: true);
-    try {
-      final paymentRepo = ref.read(paymentRepositoryProvider);
-      final enrollmentRepo = ref.read(enrollmentRepositoryProvider);
+    final paymentRepo = ref.read(paymentRepositoryProvider);
+    final enrollmentRepo = ref.read(enrollmentRepositoryProvider);
+    
+    final successfulCourseIds = <String>[];
+    bool hasFailure = false;
 
-      for (final item in state.items) {
+    for (final item in state.items) {
+      try {
         if (item.course.isFree) {
           await enrollmentRepo.enroll(item.courseId);
+          successfulCourseIds.add(item.courseId);
           continue;
         }
 
@@ -76,27 +80,33 @@ class CartController extends Notifier<CartState> {
         );
 
         final paid = await paymentRepo.processMockPayment(intent);
-        if (!paid) {
-          state = state.copyWith(isProcessing: false);
-          return false;
+        if (paid) {
+          successfulCourseIds.add(item.courseId);
+        } else {
+          hasFailure = true;
         }
-
-        final enrolled = await paymentRepo.checkPaymentStatus(intent.transactionId);
-        if (!enrolled) {
-          await enrollmentRepo.enroll(item.courseId);
-        }
+      } catch (e) {
+        hasFailure = true;
       }
+    }
 
-      await ref.read(cartRepositoryProvider).clearCart();
+    // Remove successful items from the cart
+    for (final courseId in successfulCourseIds) {
+      await ref.read(cartRepositoryProvider).removeFromCart(courseId);
+    }
+
+    if (successfulCourseIds.isNotEmpty) {
       ref.invalidate(myEnrollmentsProvider);
       ref.invalidate(myCoursesProvider);
-
-      state = state.copyWith(items: [], isProcessing: false);
-      return true;
-    } on Object {
-      state = state.copyWith(isProcessing: false);
-      return false;
     }
+
+    final remainingItems = state.items
+        .where((item) => !successfulCourseIds.contains(item.courseId))
+        .toList();
+
+    state = state.copyWith(items: remainingItems, isProcessing: false);
+
+    return successfulCourseIds.isNotEmpty && !hasFailure;
   }
 }
 

@@ -95,9 +95,13 @@ class LiveLessonController implements LessonPlayerController {
 }
 
 class ArticleLessonController implements LessonPlayerController {
-  ArticleLessonController({required this.lesson});
+  ArticleLessonController({
+    required this.lesson,
+    required this.onOpenFile,
+  });
 
   final Lesson lesson;
+  final Future<void> Function(String materialId) onOpenFile;
 
   @override
   Widget buildPlayer(BuildContext context) {
@@ -120,21 +124,13 @@ class ArticleLessonController implements LessonPlayerController {
                   (m) => ListTile(
                     leading: const Icon(Icons.attach_file),
                     title: Text(m.description),
-                    onTap: () => _openUrl(m.fullContentUrl),
+                    onTap: () => onOpenFile(m.id),
                   ),
                 ),
           ],
         ],
       ),
     );
-  }
-
-  Future<void> _openUrl(String url) async {
-    if (url.isEmpty) return;
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
   }
 
   @override
@@ -194,9 +190,13 @@ class QuizLessonController implements LessonPlayerController {
 }
 
 class AssignmentLessonController implements LessonPlayerController {
-  AssignmentLessonController({required this.lesson});
+  AssignmentLessonController({
+    required this.lesson,
+    required this.onOpenFile,
+  });
 
   final Lesson lesson;
+  final Future<void> Function(String materialId) onOpenFile;
 
   @override
   Widget buildPlayer(BuildContext context) {
@@ -213,7 +213,8 @@ class AssignmentLessonController implements LessonPlayerController {
                 (m) => ListTile(
                   leading: const Icon(Icons.assignment),
                   title: Text(m.description),
-                  subtitle: Text(m.fullContentUrl),
+                  subtitle: const Text('Tap to open'),
+                  onTap: () => onOpenFile(m.id),
                 ),
               ),
         ],
@@ -233,6 +234,7 @@ class LessonPlayerControllerFactory {
     Assessment? quizAssessment,
     int initialVideoPosition = 0,
     void Function(int positionSeconds)? onPositionChanged,
+    required Future<void> Function(String materialId) onOpenFile,
   }) {
     if (liveSession != null) {
       return LiveLessonController(session: liveSession);
@@ -249,7 +251,7 @@ class LessonPlayerControllerFactory {
       case LessonPlayType.live:
         throw StateError('Live lessons require a CourseSession');
       case LessonPlayType.article:
-        return ArticleLessonController(lesson: lesson);
+        return ArticleLessonController(lesson: lesson, onOpenFile: onOpenFile);
       case LessonPlayType.quiz:
         if (quizAssessment == null) {
           throw StateError('Quiz lessons require an Assessment');
@@ -260,9 +262,9 @@ class LessonPlayerControllerFactory {
           onComplete: onComplete,
         );
       case LessonPlayType.assignment:
-        return AssignmentLessonController(lesson: lesson);
+        return AssignmentLessonController(lesson: lesson, onOpenFile: onOpenFile);
       case LessonPlayType.unknown:
-        return ArticleLessonController(lesson: lesson);
+        return ArticleLessonController(lesson: lesson, onOpenFile: onOpenFile);
     }
   }
 }

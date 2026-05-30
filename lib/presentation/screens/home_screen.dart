@@ -261,7 +261,7 @@ class _EmptyLearningState extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Explore recommended courses while catalog APIs are being prepared.',
+                  'Explore recommended courses to start your learning journey.',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],

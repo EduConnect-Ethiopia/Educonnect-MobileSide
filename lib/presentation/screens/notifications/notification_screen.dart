@@ -58,9 +58,22 @@ class NotificationScreen extends ConsumerWidget {
         final notification = state.notifications[index];
         return _NotificationTile(
           notification: notification,
-          onTap: () => ref
-              .read(notificationControllerProvider.notifier)
-              .markAsRead(notification.id),
+          onTap: () async {
+            ref
+                .read(notificationControllerProvider.notifier)
+                .markAsRead(notification.id);
+            if (notification.deepLink != null && notification.deepLink!.isNotEmpty) {
+              final uri = Uri.tryParse(notification.deepLink!);
+              if (uri != null) {
+                // In a real app, this would use a deep link router like go_router.
+                // For now, if we can launch it (e.g. external browser), we launch it,
+                // or we show a snackbar saying we would navigate.
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Navigating to: ${notification.deepLink}')),
+                );
+              }
+            }
+          },
         );
       },
     );

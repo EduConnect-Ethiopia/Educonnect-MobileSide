@@ -7,10 +7,12 @@ import '../models/session_models.dart';
 
 abstract class CourseRemoteDataSource {
   Future<CourseModel> getCourseById(String courseId);
-  Future<List<CourseModel>> getPublishedCourses();
+  Future<List<CourseModel>> getFeaturedCourses();
+  Future<List<CourseModel>> searchCourses(String query);
   Future<CourseContentModel> getCourseContent(String courseId);
   Future<List<EnrollmentModel>> getLearnerEnrollments(String userId);
   Future<List<CourseSessionModel>> getCourseSessions(String courseId);
+  Future<String> getMaterialAccessUrl(String materialId);
 }
 
 class DioCourseRemoteDataSource implements CourseRemoteDataSource {
@@ -25,8 +27,26 @@ class DioCourseRemoteDataSource implements CourseRemoteDataSource {
   }
 
   @override
-  Future<List<CourseModel>> getPublishedCourses() async {
-    final response = await _dio.get<dynamic>(ApiEndpoints.publishedCourses);
+  Future<List<CourseModel>> getFeaturedCourses() async {
+    final response = await _dio.get<dynamic>(ApiEndpoints.featuredCourses);
+    final data = _unwrapApiData(response.data);
+
+    if (data is! List) {
+      return const [];
+    }
+
+    return data
+        .whereType<Map<String, dynamic>>()
+        .map(CourseModel.fromJson)
+        .toList();
+  }
+
+  @override
+  Future<List<CourseModel>> searchCourses(String query) async {
+    final response = await _dio.get<dynamic>(
+      ApiEndpoints.courseSearch,
+      queryParameters: {'q': query},
+    );
     final data = _unwrapApiData(response.data);
 
     if (data is! List) {
@@ -41,23 +61,6 @@ class DioCourseRemoteDataSource implements CourseRemoteDataSource {
 
   @override
   Future<CourseContentModel> getCourseContent(String courseId) async {
-    try {
-      final response = await _dio.get<dynamic>(
-        ApiEndpoints.courseContent(courseId),
-      );
-      final data = _unwrapApiData(response.data);
-      if (data is Map<String, dynamic>) {
-        final model = CourseContentModel.fromJson(castJsonMap(data));
-        if (model.modules.isNotEmpty) {
-          return model;
-        }
-      }
-    } on DioException catch (error) {
-      if (error.response?.statusCode != 404) {
-        rethrow;
-      }
-    }
-
     return _buildCourseContentFromModules(courseId);
   }
 
@@ -92,6 +95,15 @@ class DioCourseRemoteDataSource implements CourseRemoteDataSource {
         .whereType<Map<String, dynamic>>()
         .map(CourseSessionModel.fromJson)
         .toList();
+  }
+
+  @override
+  Future<String> getMaterialAccessUrl(String materialId) async {
+    final response = await _dio.post<dynamic>(
+      ApiEndpoints.materialAccess(materialId),
+    );
+    final data = castJsonMap(response.data);
+    return data['accessUrl'] as String;
   }
 
   Future<CourseContentModel> _buildCourseContentFromModules(

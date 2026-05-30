@@ -146,6 +146,35 @@ class _CourseActions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (course.enrollmentId != null) {
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () {
+            final content = ref.read(courseContentAsyncProvider(course.id)).value;
+            if (content != null && content.modules.isNotEmpty && content.modules.first.lessons.isNotEmpty) {
+              final lesson = content.modules.first.lessons.first;
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => CoursePlayerScreen(
+                    course: course,
+                    enrollmentId: course.enrollmentId ?? 'local',
+                    initialLesson: lesson,
+                  ),
+                ),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Select a lesson below to resume learning.')),
+              );
+            }
+          },
+          icon: const Icon(Icons.play_circle_fill),
+          label: const Text('Continue Learning'),
+        ),
+      );
+    }
+
     return Column(
       children: [
         if (!course.isFree) ...[

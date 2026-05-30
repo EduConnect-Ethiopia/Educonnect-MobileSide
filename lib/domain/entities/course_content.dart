@@ -98,8 +98,8 @@ class Material {
   String get fullContentUrl {
     if (contentUrl == null || contentUrl!.isEmpty) return '';
     if (contentUrl!.startsWith('http')) return contentUrl!;
-    // For relative paths, construct the full URL
-    return 'http://10.0.2.2:5001/materials/$contentUrl';
+    // Secure token access is required for local files
+    return '';
   }
 
   bool get isVideo => type == 4;

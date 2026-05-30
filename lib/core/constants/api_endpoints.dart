@@ -11,16 +11,21 @@ class ApiEndpoints {
     static const confirmEmailVerification = '/api/Auth/verify/confirm';
     static const resendEmailVerification = '/api/Auth/verify/resend';
 
+  // Users
+  static const currentUser = '/api/Users/me';
+
   // Course
-  static const publishedCourses = '/api/Course/published';
+  static const featuredCourses = '/api/Course/featured';
+  static const courseSearch = '/api/Course/search';
   static String course(String courseId) => '/api/Course/$courseId';
-  static String courseContent(String courseId) => '/api/Course/$courseId/content';
   static String courseModules(String courseId) =>
       '/api/Course/$courseId/modules';
   static String moduleLessons(String moduleId) =>
       '/api/Course/$moduleId/lessons';
   static String lessonMaterials(String lessonId) =>
       '/api/Course/$lessonId/materials';
+  static String materialAccess(String materialId) =>
+      '/api/files/materials/$materialId/access';
 
   // Enrollment
   static const enroll = '/api/Enrollment/enroll';

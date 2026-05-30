@@ -221,6 +221,8 @@ class _CartScreenState extends ConsumerState<CartScreen> {
 
     if (!context.mounted) return;
 
+    final updatedCart = ref.read(cartControllerProvider);
+
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -230,6 +232,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute<void>(builder: (_) => const MainNavigationScreen()),
         (_) => false,
+      );
+    } else if (updatedCart.items.length < cart.items.length) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Some purchases succeeded. Remaining items failed.')),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
