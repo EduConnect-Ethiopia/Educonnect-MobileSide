@@ -10,8 +10,22 @@ class EnrollmentRepositoryImpl implements EnrollmentRepository {
   final EnrollmentRemoteDataSource _remoteDataSource;
 
   @override
-  Future<void> enroll(String courseId) async {
-    await _remoteDataSource.enroll(courseId);
+  Future<Enrollment> enroll(String courseId) async {
+    final createdEnrollment = await _remoteDataSource.enroll(courseId);
+    if (createdEnrollment != null) {
+      return createdEnrollment.toEntity();
+    }
+
+    final enrollments = await getMyEnrollments();
+    for (final enrollment in enrollments) {
+      if (enrollment.courseId == courseId && enrollment.isActive) {
+        return enrollment;
+      }
+    }
+
+    throw StateError(
+      'Enrollment completed but the active enrollment could not be resolved.',
+    );
   }
 
   @override

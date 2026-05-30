@@ -5,7 +5,7 @@ import '../../core/utils/json_map.dart';
 import '../models/course_models.dart';
 
 abstract class EnrollmentRemoteDataSource {
-  Future<void> enroll(String courseId);
+  Future<EnrollmentModel?> enroll(String courseId);
   Future<void> unenroll(String courseId);
   Future<List<EnrollmentModel>> getMyEnrollments();
 }
@@ -16,11 +16,18 @@ class DioEnrollmentRemoteDataSource implements EnrollmentRemoteDataSource {
   final Dio _dio;
 
   @override
-  Future<void> enroll(String courseId) async {
-    await _dio.post<dynamic>(
+  Future<EnrollmentModel?> enroll(String courseId) async {
+    final response = await _dio.post<dynamic>(
       ApiEndpoints.enroll,
       data: {'courseId': courseId},
     );
+
+    final data = _unwrapApiData(response.data);
+    if (data is Map<String, dynamic>) {
+      return EnrollmentModel.fromJson(data);
+    }
+
+    return null;
   }
 
   @override

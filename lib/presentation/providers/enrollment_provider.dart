@@ -11,11 +11,13 @@ final myEnrollmentsProvider = FutureProvider<List<Enrollment>>((ref) async {
 final myCoursesProvider = FutureProvider<List<Course>>((ref) async {
   final enrollments = await ref.watch(myEnrollmentsProvider.future);
   final courses = <Course>[];
-  
+
   for (final enrollment in enrollments) {
     if (enrollment.isActive) {
       try {
-        final course = await ref.read(courseRepositoryProvider).getCourseById(enrollment.courseId);
+        final course = await ref
+            .read(courseRepositoryProvider)
+            .getCourseById(enrollment.courseId);
         courses.add(
           course.copyWith(
             enrolledAt: enrollment.enrolledAt,
@@ -28,13 +30,14 @@ final myCoursesProvider = FutureProvider<List<Course>>((ref) async {
       }
     }
   }
-  
+
   return courses;
 });
 
-final enrollmentControllerProvider = NotifierProvider<EnrollmentController, EnrollmentState>(
-  EnrollmentController.new,
-);
+final enrollmentControllerProvider =
+    NotifierProvider<EnrollmentController, EnrollmentState>(
+      EnrollmentController.new,
+    );
 
 class EnrollmentController extends Notifier<EnrollmentState> {
   @override
@@ -46,12 +49,15 @@ class EnrollmentController extends Notifier<EnrollmentState> {
     state = state.copyWith(isEnrolling: true, clearError: true);
 
     try {
-      await ref.read(enrollmentRepositoryProvider).enroll(courseId);
+      final enrollment = await ref
+          .read(enrollmentRepositoryProvider)
+          .enroll(courseId);
       state = state.copyWith(
         isEnrolling: false,
         successMessage: 'Successfully enrolled in course!',
+        lastEnrollment: enrollment,
       );
-      
+
       // Invalidate the enrollments cache
       ref.invalidate(myEnrollmentsProvider);
       ref.invalidate(myCoursesProvider);
@@ -71,8 +77,9 @@ class EnrollmentController extends Notifier<EnrollmentState> {
       state = state.copyWith(
         isEnrolling: false,
         successMessage: 'Successfully unenrolled from course.',
+        clearLastEnrollment: true,
       );
-      
+
       // Invalidate the enrollments cache
       ref.invalidate(myEnrollmentsProvider);
       ref.invalidate(myCoursesProvider);
@@ -85,10 +92,7 @@ class EnrollmentController extends Notifier<EnrollmentState> {
   }
 
   void clearMessages() {
-    state = state.copyWith(
-      successMessage: null,
-      errorMessage: null,
-    );
+    state = state.copyWith(successMessage: null, errorMessage: null);
   }
 }
 
@@ -97,27 +101,35 @@ class EnrollmentState {
     required this.isEnrolling,
     this.successMessage,
     this.errorMessage,
+    this.lastEnrollment,
   });
 
   const EnrollmentState.initial()
     : isEnrolling = false,
       successMessage = null,
-      errorMessage = null;
+      errorMessage = null,
+      lastEnrollment = null;
 
   final bool isEnrolling;
   final String? successMessage;
   final String? errorMessage;
+  final Enrollment? lastEnrollment;
 
   EnrollmentState copyWith({
     bool? isEnrolling,
     String? successMessage,
     String? errorMessage,
+    Enrollment? lastEnrollment,
     bool clearError = false,
+    bool clearLastEnrollment = false,
   }) {
     return EnrollmentState(
       isEnrolling: isEnrolling ?? this.isEnrolling,
       successMessage: successMessage ?? this.successMessage,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
+      lastEnrollment: clearLastEnrollment
+          ? null
+          : lastEnrollment ?? this.lastEnrollment,
     );
   }
 }

@@ -6,6 +6,8 @@ import '../../core/constants/app_colors.dart';
 import '../../domain/entities/course.dart';
 import '../../domain/entities/course_content.dart';
 import '../../domain/entities/course_session.dart';
+import '../../domain/entities/enrollment.dart';
+import '../../domain/entities/lesson_play_type.dart';
 import '../providers/cart_provider.dart';
 import '../providers/course_detail_provider.dart';
 import '../providers/enrollment_provider.dart';
@@ -21,11 +23,29 @@ class CourseDetailScreen extends ConsumerWidget {
     final contentAsync = ref.watch(courseContentAsyncProvider(course.id));
     final sessionsAsync = ref.watch(courseSessionsAsyncProvider(course.id));
     final enrollmentState = ref.watch(enrollmentControllerProvider);
+    final myEnrollmentsAsync = ref.watch(myEnrollmentsProvider);
+
+    final backendEnrollment = myEnrollmentsAsync.maybeWhen(
+      data: (List<Enrollment> enrollments) {
+        for (final enrollment in enrollments) {
+          if (enrollment.courseId == course.id && enrollment.isActive) {
+            return enrollment;
+          }
+        }
+        return null;
+      },
+      orElse: () => null,
+    );
+
+    final activeEnrollment =
+        enrollmentState.lastEnrollment?.courseId == course.id
+        ? enrollmentState.lastEnrollment
+        : backendEnrollment;
+    final enrollmentId = course.enrollmentId ?? activeEnrollment?.id;
+    final canAccessLessons = enrollmentId != null;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(course.title),
-      ),
+      appBar: AppBar(title: Text(course.title)),
       body: contentAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(
@@ -41,7 +61,8 @@ class CourseDetailScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: () => ref.invalidate(courseContentAsyncProvider(course.id)),
+                onPressed: () =>
+                    ref.invalidate(courseContentAsyncProvider(course.id)),
                 child: const Text('Try Again'),
               ),
             ],
@@ -58,6 +79,8 @@ class CourseDetailScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(16),
                 child: _CourseActions(
                   course: course,
+                  enrollmentId: enrollmentId,
+                  canAccessLessons: canAccessLessons,
                   enrollmentState: enrollmentState,
                 ),
               ),
@@ -83,7 +106,8 @@ class CourseDetailScreen extends ConsumerWidget {
                         return _ModuleListTile(
                           module: module,
                           course: course,
-                          content: content,
+                          enrollmentId: enrollmentId,
+                          canAccessLessons: canAccessLessons,
                         );
                       }),
                   ],
@@ -96,9 +120,7 @@ class CourseDetailScreen extends ConsumerWidget {
                   padding: EdgeInsets.all(16),
                   child: SizedBox(
                     height: 40,
-                    child: Center(
-                      child: CircularProgressIndicator(),
-                    ),
+                    child: Center(child: CircularProgressIndicator()),
                   ),
                 ),
                 error: (error, stackTrace) => const SizedBox.shrink(),
@@ -132,40 +154,49 @@ class CourseDetailScreen extends ConsumerWidget {
       ),
     );
   }
-
 }
 
 class _CourseActions extends ConsumerWidget {
   const _CourseActions({
     required this.course,
+    required this.enrollmentId,
+    required this.canAccessLessons,
     required this.enrollmentState,
   });
 
   final Course course;
+  final String? enrollmentId;
+  final bool canAccessLessons;
   final EnrollmentState enrollmentState;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (course.enrollmentId != null) {
+    if (canAccessLessons) {
       return SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
           onPressed: () {
-            final content = ref.read(courseContentAsyncProvider(course.id)).value;
-            if (content != null && content.modules.isNotEmpty && content.modules.first.lessons.isNotEmpty) {
+            final content = ref
+                .read(courseContentAsyncProvider(course.id))
+                .value;
+            if (content != null &&
+                content.modules.isNotEmpty &&
+                content.modules.first.lessons.isNotEmpty) {
               final lesson = content.modules.first.lessons.first;
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
                   builder: (_) => CoursePlayerScreen(
                     course: course,
-                    enrollmentId: course.enrollmentId ?? 'local',
+                    enrollmentId: enrollmentId!,
                     initialLesson: lesson,
                   ),
                 ),
               );
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Select a lesson below to resume learning.')),
+                const SnackBar(
+                  content: Text('Select a lesson below to resume learning.'),
+                ),
               );
             }
           },
@@ -182,11 +213,13 @@ class _CourseActions extends ConsumerWidget {
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: () async {
-                await ref.read(cartControllerProvider.notifier).addToCart(course);
+                await ref
+                    .read(cartControllerProvider.notifier)
+                    .addToCart(course);
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Added to cart')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Added to cart')));
               },
               icon: const Icon(Icons.shopping_cart_outlined),
               label: const Text('Add to Cart'),
@@ -216,11 +249,13 @@ class _CourseActions extends ConsumerWidget {
                         .read(enrollmentControllerProvider.notifier)
                         .enrollCourse(course.id);
                     if (!context.mounted) return;
-                    final msg = ref.read(enrollmentControllerProvider).successMessage;
+                    final msg = ref
+                        .read(enrollmentControllerProvider)
+                        .successMessage;
                     if (msg != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(msg)),
-                      );
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text(msg)));
                     }
                   },
             icon: enrollmentState.isEnrolling
@@ -253,23 +288,23 @@ class _CourseHeader extends StatelessWidget {
         children: [
           Text(
             course.title,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
             course.category,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.textSubtitle,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.textSubtitle),
           ),
           const SizedBox(height: 8),
           Text(
             'Instructor: ${course.instructor}',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.textSubtitle,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.textSubtitle),
           ),
           const SizedBox(height: 12),
           Text(
@@ -286,12 +321,14 @@ class _ModuleListTile extends StatefulWidget {
   const _ModuleListTile({
     required this.module,
     required this.course,
-    required this.content,
+    required this.enrollmentId,
+    required this.canAccessLessons,
   });
 
   final Module module;
   final Course course;
-  final CourseContent content;
+  final String? enrollmentId;
+  final bool canAccessLessons;
 
   @override
   State<_ModuleListTile> createState() => _ModuleListTileState();
@@ -305,30 +342,37 @@ class _ModuleListTileState extends State<_ModuleListTile> {
       child: ExpansionTile(
         title: Text(
           widget.module.title,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
         ),
         subtitle: Text(
           '${widget.module.lessons.length} lessons',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: AppColors.textSubtitle,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: AppColors.textSubtitle),
         ),
         children: [
           ...widget.module.lessons.map((lesson) {
             return ListTile(
               dense: true,
               title: Text(lesson.title),
-              subtitle: Text('${lesson.materials.length} materials'),
-              trailing: const Icon(Icons.play_circle_outline, size: 20),
+              subtitle: Text(
+                '${_labelForType(lesson.playType)} · ${lesson.materials.length} materials',
+              ),
+              leading: Icon(_iconForType(lesson.playType), size: 20),
               onTap: () {
-                final enrollmentId = widget.course.enrollmentId ?? 'local';
+                if (!widget.canAccessLessons || widget.enrollmentId == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Enroll to open lessons.')),
+                  );
+                  return;
+                }
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) => CoursePlayerScreen(
                       course: widget.course,
-                      enrollmentId: enrollmentId,
+                      enrollmentId: widget.enrollmentId!,
                       initialLesson: lesson,
                     ),
                   ),
@@ -337,9 +381,59 @@ class _ModuleListTileState extends State<_ModuleListTile> {
             );
           }),
           const SizedBox(height: 8),
+          if (!widget.canAccessLessons)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.lock_outline, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Enroll to view lesson titles and open this module.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  IconData _iconForType(LessonPlayType type) {
+    switch (type) {
+      case LessonPlayType.video:
+        return Icons.play_circle_outline;
+      case LessonPlayType.article:
+        return Icons.article_outlined;
+      case LessonPlayType.quiz:
+        return Icons.quiz_outlined;
+      case LessonPlayType.assignment:
+        return Icons.assignment_outlined;
+      case LessonPlayType.live:
+        return Icons.videocam_outlined;
+      case LessonPlayType.unknown:
+        return Icons.help_outline;
+    }
+  }
+
+  String _labelForType(LessonPlayType type) {
+    switch (type) {
+      case LessonPlayType.video:
+        return 'Video';
+      case LessonPlayType.article:
+        return 'Article';
+      case LessonPlayType.quiz:
+        return 'Quiz';
+      case LessonPlayType.assignment:
+        return 'Assignment';
+      case LessonPlayType.live:
+        return 'Live class';
+      case LessonPlayType.unknown:
+        return 'Lesson';
+    }
   }
 }
 
@@ -368,7 +462,10 @@ class _SessionCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: _statusColor(session).withValues(alpha: 0.14),
                     borderRadius: BorderRadius.circular(6),
@@ -386,16 +483,16 @@ class _SessionCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Starts: ${_formatDateTime(session.startTime)}',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textSubtitle,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSubtitle),
             ),
             const SizedBox(height: 4),
             Text(
               'Ends: ${_formatDateTime(session.endTime)}',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textSubtitle,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSubtitle),
             ),
             const SizedBox(height: 12),
             SizedBox(
