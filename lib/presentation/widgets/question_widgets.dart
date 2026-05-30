@@ -63,11 +63,14 @@ class _QuestionWidgetState extends State<QuestionWidget> {
     final groupValue = widget.initialAnswer as int?;
     return Column(
       children: List.generate(widget.question.options.length, (index) {
-        return RadioListTile<int>(
-          value: index,
-          groupValue: groupValue,
-          onChanged: (v) => widget.onAnswer(v),
+        return ListTile(
+          leading: Radio<int>(
+            value: index,
+            groupValue: groupValue,
+            onChanged: (v) => widget.onAnswer(v),
+          ),
           title: Text(widget.question.options[index]),
+          onTap: () => widget.onAnswer(index),
         );
       }),
     );

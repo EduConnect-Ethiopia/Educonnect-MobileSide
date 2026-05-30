@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:io' show Platform;
 
@@ -33,7 +33,9 @@ class AppEnvironment {
     // 1. First check if URL is set in .env file
     final envUrl = _env('API_BASE_URL');
     if (envUrl != null && envUrl.isNotEmpty) {
-      print('[AppEnvironment] Using API URL from .env: $envUrl');
+      if (kDebugMode) {
+        print('[AppEnvironment] Using API URL from .env: $envUrl');
+      }
       return envUrl;
     }
 
@@ -54,7 +56,9 @@ class AppEnvironment {
       url = 'http://localhost:5001';  // Desktop or others
     }
 
-    print('[AppEnvironment] Platform: ${kIsWeb ? 'Web' : Platform.operatingSystem}, API URL: $url');
+    if (kDebugMode) {
+      print('[AppEnvironment] Platform: ${kIsWeb ? 'Web' : Platform.operatingSystem}, API URL: $url');
+    }
     return url;
   }
 

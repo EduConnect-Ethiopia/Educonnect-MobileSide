@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 
 import '../config/app_environment.dart';
 import '../storage/token_storage.dart';
@@ -10,7 +11,9 @@ class DioClient {
   static Dio create({required TokenStorage tokenStorage}) {
     final apiBaseUrl = AppEnvironment.apiBaseUrl;
     
-    print('[DioClient] Initializing Dio with base URL: $apiBaseUrl');
+    if (kDebugMode) {
+      print('[DioClient] Initializing Dio with base URL: $apiBaseUrl');
+    }
 
     final baseOptions = BaseOptions(
       baseUrl: apiBaseUrl,
@@ -43,8 +46,8 @@ class DioClient {
           requestHeader: true,
           responseHeader: true,
           logPrint: (obj) {
-            print('[HTTP] $obj');
-          },
+            if (kDebugMode) print('[HTTP] $obj');
+              },
         ),
       );
     }

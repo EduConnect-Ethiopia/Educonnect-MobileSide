@@ -38,6 +38,7 @@ import '../../domain/repositories/payment_repository.dart';
 import '../../domain/repositories/progress_repository.dart';
 import '../../domain/repositories/recommendation_repository.dart';
 import '../../presentation/controllers/checkout_controller.dart';
+import '../../presentation/controllers/cart_controller.dart';
 import '../network/dio_client.dart';
 import '../storage/token_storage.dart';
 

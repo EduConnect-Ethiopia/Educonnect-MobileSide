@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 
 import '../constants/api_endpoints.dart';
 import '../storage/token_storage.dart';
@@ -23,12 +24,12 @@ class JwtAuthInterceptor extends QueuedInterceptor {
     options.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
 
     if (_isAuthEndpoint(path)) {
-      print('[JwtAuthInterceptor] 🔓 Auth endpoint detected: $path (no token needed)');
+      if (kDebugMode) print('[JwtAuthInterceptor] 🔓 Auth endpoint detected: $path (no token needed)');
     } else if (accessToken != null && accessToken.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $accessToken';
-      print('[JwtAuthInterceptor] ✅ Token attached for: $path');
+      if (kDebugMode) print('[JwtAuthInterceptor] ✅ Token attached for: $path');
     } else {
-      print('[JwtAuthInterceptor] ⚠️  No token available for: $path');
+      if (kDebugMode) print('[JwtAuthInterceptor] ⚠️  No token available for: $path');
     }
 
     handler.next(options);
@@ -43,17 +44,17 @@ class JwtAuthInterceptor extends QueuedInterceptor {
     final path = err.requestOptions.path;
 
     if (statusCode == 401 && !_isAuthEndpoint(path)) {
-      print('[JwtAuthInterceptor] ❌ 401 Unauthorized for: $path');
-      print('[JwtAuthInterceptor] 🔐 Clearing token storage due to 401 error');
+      if (kDebugMode) print('[JwtAuthInterceptor] ❌ 401 Unauthorized for: $path');
+      if (kDebugMode) print('[JwtAuthInterceptor] 🔐 Clearing token storage due to 401 error');
       await _tokenStorage.clear();
     } else if (err.type == DioExceptionType.connectionTimeout) {
-      print('[JwtAuthInterceptor] ⏱️  Connection timeout: $path');
+      if (kDebugMode) print('[JwtAuthInterceptor] ⏱️  Connection timeout: $path');
     } else if (err.type == DioExceptionType.receiveTimeout) {
-      print('[JwtAuthInterceptor] ⏱️  Receive timeout: $path');
+      if (kDebugMode) print('[JwtAuthInterceptor] ⏱️  Receive timeout: $path');
     } else if (err.type == DioExceptionType.unknown) {
-      print('[JwtAuthInterceptor] 🚨 Network error on $path: ${err.message}');
+      if (kDebugMode) print('[JwtAuthInterceptor] 🚨 Network error on $path: ${err.message}');
     } else {
-      print('[JwtAuthInterceptor] 🚨 Error on $path: ${err.message}');
+      if (kDebugMode) print('[JwtAuthInterceptor] 🚨 Error on $path: ${err.message}');
     }
 
     handler.next(err);
