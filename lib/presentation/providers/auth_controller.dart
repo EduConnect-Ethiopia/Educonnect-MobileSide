@@ -114,7 +114,7 @@ class AuthController extends Notifier<AuthState> {
 
       state = AuthState(
         status: AuthStatus.failure,
-        errorMessage: _friendlyError(error),
+        errorMessage: _loginFriendlyError(error),
       );
     }
   }
@@ -329,6 +329,40 @@ class AuthController extends Notifier<AuthState> {
     }
 
     return 'Something went wrong. Please try again.';
+  }
+
+  String _loginFriendlyError(Object error) {
+    if (error is DioException) {
+      final statusCode = error.response?.statusCode;
+      if (statusCode == 400 ||
+          statusCode == 401 ||
+          statusCode == 403 ||
+          statusCode == 404) {
+        return 'The email or password you entered is incorrect.';
+      }
+
+      final apiMessage = _extractApiMessage(error);
+      if (apiMessage != null) {
+        final normalized = apiMessage.toLowerCase();
+        if (normalized.contains('invalid') ||
+            normalized.contains('incorrect') ||
+            normalized.contains('wrong') ||
+            normalized.contains('credentials')) {
+          return 'The email or password you entered is incorrect.';
+        }
+        return apiMessage;
+      }
+
+      if (error.type == DioExceptionType.connectionTimeout ||
+          error.type == DioExceptionType.receiveTimeout ||
+          error.type == DioExceptionType.sendTimeout) {
+        return 'The connection timed out. Please try again.';
+      }
+
+      return 'Unable to sign in right now. Please check your details and try again.';
+    }
+
+    return 'The email or password you entered is incorrect.';
   }
 
   bool _isVerificationError(Object error) {

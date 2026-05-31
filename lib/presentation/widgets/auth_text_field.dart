@@ -9,6 +9,7 @@ class AuthTextField extends StatefulWidget {
     required this.label,
     this.hintText,
     this.prefixIcon,
+    this.fieldHeight,
     this.validator,
     this.keyboardType,
     this.textInputAction,
@@ -22,6 +23,7 @@ class AuthTextField extends StatefulWidget {
   final String label;
   final String? hintText;
   final IconData? prefixIcon;
+  final double? fieldHeight;
   final FormFieldValidator<String>? validator;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
@@ -63,10 +65,30 @@ class _AuthTextFieldState extends State<AuthTextField> {
           textInputAction: widget.textInputAction,
           obscureText: _isObscured,
           onFieldSubmitted: widget.onFieldSubmitted,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: AppColors.textHeadline,
+                fontWeight: FontWeight.w600,
+              ),
           decoration: InputDecoration(
             hintText: widget.hintText,
-            prefixIcon:
-                widget.prefixIcon == null ? null : Icon(widget.prefixIcon),
+            hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSubtitle.withValues(alpha: 0.85),
+                ),
+            filled: true,
+            fillColor: Colors.white,
+            constraints: widget.fieldHeight == null
+                ? null
+                : BoxConstraints(minHeight: widget.fieldHeight!),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 16.w,
+              vertical: widget.fieldHeight == null ? 18.h : 12.h,
+            ),
+            prefixIcon: widget.prefixIcon == null
+                ? null
+                : Icon(
+                    widget.prefixIcon,
+                    color: AppColors.textSubtitle,
+                  ),
             suffixIcon: widget.obscureText && widget.showVisibilityToggle
                 ? IconButton(
                     tooltip: _isObscured ? 'Show password' : 'Hide password',
@@ -74,12 +96,33 @@ class _AuthTextFieldState extends State<AuthTextField> {
                       _isObscured
                           ? Icons.visibility_outlined
                           : Icons.visibility_off_outlined,
+                      color: AppColors.textSubtitle,
                     ),
                     onPressed: () {
                       setState(() => _isObscured = !_isObscured);
                     },
                   )
                 : null,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14.r),
+              borderSide: BorderSide(color: AppColors.textSubtitle.withValues(alpha: 0.25)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14.r),
+              borderSide: BorderSide(color: AppColors.textSubtitle.withValues(alpha: 0.22)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14.r),
+              borderSide: const BorderSide(color: AppColors.primary, width: 1.4),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14.r),
+              borderSide: const BorderSide(color: Colors.redAccent),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14.r),
+              borderSide: const BorderSide(color: Colors.redAccent, width: 1.4),
+            ),
           ),
         ),
       ],

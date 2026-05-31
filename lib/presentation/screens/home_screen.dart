@@ -116,7 +116,19 @@ class HomeScreen extends ConsumerWidget {
         child: CustomScrollView(
           slivers: [
             SliverAppBar(
-              title: Text(isAmharic ? 'ቤት' : 'Home'),
+              title: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.asset(
+                    'assets/icons/app_icon.jpg',
+                    width: 30,
+                    height: 30,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(isAmharic ? 'ቤት' : 'Home'),
+                ],
+              ),
               floating: true,
               actions: [
                 IconButton(
