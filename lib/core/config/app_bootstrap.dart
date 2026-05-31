@@ -13,6 +13,8 @@ class AppBootstrap {
 
     await dotenv.load(fileName: AppEnvironment.envFileName);
     await Hive.initFlutter();
+    await Hive.openBox<String>('course_content_cache');
+    await Hive.openBox<String>('material_file_cache');
 
     final sharedPreferences = await SharedPreferences.getInstance();
 
