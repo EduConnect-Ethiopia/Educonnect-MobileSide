@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/di/app_providers.dart';
 import '../../../domain/entities/assessment.dart';
@@ -100,16 +99,12 @@ class _CoursePlayerScreenState extends ConsumerState<CoursePlayerScreen> {
             final accessUrl = await ref
                 .read(courseRepositoryProvider)
                 .getMaterialAccessUrl(materialId);
-            final uri = Uri.parse(accessUrl);
-            if (await canLaunchUrl(uri)) {
-              await launchUrl(uri, mode: LaunchMode.externalApplication);
-            } else {
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Cannot open this material.')),
+            await ref
+                .read(materialFileCacheServiceProvider)
+                .openOrDownloadMaterial(
+                  materialId: materialId,
+                  accessUrl: accessUrl,
                 );
-              }
-            }
           } catch (e) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(

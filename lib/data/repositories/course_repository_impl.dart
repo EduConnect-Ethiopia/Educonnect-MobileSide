@@ -4,13 +4,19 @@ import '../../domain/entities/course_content.dart';
 import '../../domain/entities/course_session.dart';
 import '../../domain/repositories/course_repository.dart';
 import '../datasources/course_remote_data_source.dart';
+import '../datasources/local/course_cache_local_data_source.dart';
 import '../models/course_models.dart';
 
 class CourseRepositoryImpl implements CourseRepository {
-  const CourseRepositoryImpl({required CourseRemoteDataSource remoteDataSource})
-    : _remoteDataSource = remoteDataSource;
+  const CourseRepositoryImpl({
+    required CourseRemoteDataSource remoteDataSource,
+    required CourseCacheLocalDataSource localDataSource,
+  })
+    : _remoteDataSource = remoteDataSource,
+      _localDataSource = localDataSource;
 
   final CourseRemoteDataSource _remoteDataSource;
+  final CourseCacheLocalDataSource _localDataSource;
 
   @override
   Future<Course> getCourseById(String courseId) async {
@@ -41,8 +47,18 @@ class CourseRepositoryImpl implements CourseRepository {
 
   @override
   Future<CourseContent> getCourseContent(String courseId) async {
-    final content = await _remoteDataSource.getCourseContent(courseId);
-    return content.toEntity();
+    try {
+      final content = await _remoteDataSource.getCourseContent(courseId);
+      final entity = content.toEntity();
+      await _localDataSource.saveCourseContent(courseId, entity);
+      return entity;
+    } on Object {
+      final cached = _localDataSource.getCourseContent(courseId);
+      if (cached != null) {
+        return cached;
+      }
+      rethrow;
+    }
   }
 
   @override

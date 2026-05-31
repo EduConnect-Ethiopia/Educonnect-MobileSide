@@ -6,6 +6,7 @@ import '../../data/datasources/auth_remote_data_source.dart';
 import '../../data/datasources/course_remote_data_source.dart';
 import '../../data/datasources/enrollment_remote_data_source.dart';
 import '../../data/datasources/local/cart_local_data_source.dart';
+import '../../data/datasources/local/course_cache_local_data_source.dart';
 import '../../data/datasources/local/progress_local_data_source.dart';
 import '../../data/datasources/remote/assessment_remote_data_source.dart';
 import '../../data/datasources/remote/certificate_remote_data_source.dart';
@@ -24,6 +25,7 @@ import '../../data/repositories/notification_repository_impl.dart';
 import '../../data/repositories/payment_repository_impl.dart';
 import '../../data/repositories/progress_repository_impl.dart';
 import '../../data/repositories/recommendation_repository_impl.dart';
+import '../../data/services/material_file_cache_service.dart';
 import '../../domain/repositories/assessment_repository.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/repositories/cart_repository.dart';
@@ -66,9 +68,15 @@ final courseRemoteDataSourceProvider = Provider<CourseRemoteDataSource>((ref) {
   return DioCourseRemoteDataSource(ref.watch(dioProvider));
 });
 
+final courseCacheLocalDataSourceProvider =
+    Provider<CourseCacheLocalDataSource>((ref) {
+  return CourseCacheLocalDataSource();
+});
+
 final courseRepositoryProvider = Provider<CourseRepository>((ref) {
   return CourseRepositoryImpl(
     remoteDataSource: ref.watch(courseRemoteDataSourceProvider),
+    localDataSource: ref.watch(courseCacheLocalDataSourceProvider),
   );
 });
 
@@ -115,6 +123,13 @@ final cartRepositoryProvider = Provider<CartRepository>((ref) {
   return CartRepositoryImpl(
     localDataSource: ref.watch(cartLocalDataSourceProvider),
     courseRepository: ref.watch(courseRepositoryProvider),
+  );
+});
+
+final materialFileCacheServiceProvider = Provider<MaterialFileCacheService>((ref) {
+  return MaterialFileCacheService(
+    dio: ref.watch(dioProvider),
+    cache: ref.watch(courseCacheLocalDataSourceProvider),
   );
 });
 
