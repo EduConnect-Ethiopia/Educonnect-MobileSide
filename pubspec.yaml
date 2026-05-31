@@ -94,12 +94,15 @@ flutter:
   assets:
     - .env.dev
     - .env.prod
+    - assets/icons/educonnect logo.png
+    - assets/icons/app_icon.jpg
 
-# flutter_launcher_icons configuration (replace icon asset at assets/icons/app_icon.png)
-flutter_icons:
+# flutter_launcher_icons configuration (replace icon asset at assets/icons/app_icon.jpg)
+flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/icons/app_icon.png"
+  remove_alpha_ios: true
+  image_path: "assets/icons/app_icon.jpg"
 
   # To add assets to your application, add an assets section, like this:
   # assets:

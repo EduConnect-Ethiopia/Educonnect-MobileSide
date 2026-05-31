@@ -50,6 +50,7 @@ class EduConnectApp extends ConsumerWidget {
         return MaterialApp(
           title: 'EduConnect Ethiopia',
           debugShowCheckedModeBanner: false,
+          useInheritedMediaQuery: true,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode:
