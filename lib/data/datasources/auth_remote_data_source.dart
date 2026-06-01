@@ -11,15 +11,7 @@ abstract class AuthRemoteDataSource {
 
   Future<void> requestPasswordReset(ForgotPasswordRequest request);
 
-<<<<<<< HEAD
-  Future<void> resetPassword({
-    required String email,
-    required String code,
-    required String newPassword,
-  });
-=======
   Future<void> resetPassword(ResetPasswordRequest request);
->>>>>>> 855c43740046b4fb43a1e079e9b96313602cdf35
 
   Future<void> requestEmailVerification(ForgotPasswordRequest request);
 
@@ -57,32 +49,6 @@ class DioAuthRemoteDataSource implements AuthRemoteDataSource {
   }
 
   @override
-<<<<<<< HEAD
-  Future<void> resetPassword({
-    required String email,
-    required String code,
-    required String newPassword,
-  }) async {
-    await _dio.post<dynamic>(
-      ApiEndpoints.resetPassword,
-      data: {
-        'email': email.trim(),
-        'code': code.trim(),
-        'newPassword': newPassword,
-      },
-    );
-  }
-
-  @override
-  Future<void> requestEmailVerification(String email) async {
-    final response = await _dio.post<dynamic>(
-      ApiEndpoints.requestEmailVerification,
-      data: {'email': email.trim()},
-    );
-    try {
-      print('[AuthRemote] requestEmailVerification status: ${response.statusCode} body: ${response.data}');
-    } catch (_) {}
-=======
   Future<void> resetPassword(ResetPasswordRequest request) async {
     await _dio.post<dynamic>(ApiEndpoints.resetPassword, data: request.toJson());
   }
@@ -90,7 +56,6 @@ class DioAuthRemoteDataSource implements AuthRemoteDataSource {
   @override
   Future<void> requestEmailVerification(ForgotPasswordRequest request) async {
     await _dio.post<dynamic>(ApiEndpoints.requestEmailVerification, data: request.toJson());
->>>>>>> 855c43740046b4fb43a1e079e9b96313602cdf35
   }
 
   @override
@@ -105,18 +70,7 @@ class DioAuthRemoteDataSource implements AuthRemoteDataSource {
   }
 
   @override
-<<<<<<< HEAD
-  Future<void> resendEmailVerification(String email) async {
-    final response = await _dio.post<dynamic>(
-      ApiEndpoints.resendEmailVerification,
-      data: {'email': email.trim()},
-    );
-    try {
-      print('[AuthRemote] resendEmailVerification status: ${response.statusCode} body: ${response.data}');
-    } catch (_) {}
-=======
   Future<void> resendEmailVerification(ForgotPasswordRequest request) async {
     await _dio.post<dynamic>(ApiEndpoints.resendEmailVerification, data: request.toJson());
->>>>>>> 855c43740046b4fb43a1e079e9b96313602cdf35
   }
 }
