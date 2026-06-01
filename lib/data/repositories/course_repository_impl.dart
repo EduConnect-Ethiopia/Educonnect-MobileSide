@@ -25,8 +25,8 @@ class CourseRepositoryImpl implements CourseRepository {
   }
 
   @override
-  Future<List<Course>> getFeaturedCourses() async {
-    final courses = await _remoteDataSource.getFeaturedCourses();
+  Future<List<Course>> getPublishedCourses() async {
+    final courses = await _remoteDataSource.getPublishedCourses();
     return courses.map((c) => c.toEntity()).toList();
   }
 

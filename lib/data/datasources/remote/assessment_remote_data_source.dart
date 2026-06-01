@@ -87,19 +87,13 @@ class DioAssessmentRemoteDataSource implements AssessmentRemoteDataSource {
     required String filePath,
     String content = '',
   }) async {
-    final formData = FormData.fromMap({
-      'AssessmentId': assessmentId,
-      'Content': content,
-      'File': await MultipartFile.fromFile(
-        filePath,
-        filename: File(filePath).uri.pathSegments.last,
-      ),
-    });
-
     await _dio.post<dynamic>(
-      '${ApiEndpoints.submitAssignment}',
-      data: formData,
-      options: Options(contentType: 'multipart/form-data'),
+      ApiEndpoints.submitAssignment,
+      data: {
+        'assessmentId': assessmentId,
+        'fileUrl': filePath,
+        'content': content,
+      },
     );
   }
 

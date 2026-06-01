@@ -55,6 +55,9 @@ class _FakeCourseRepo implements CourseRepository {
 
   @override
   Future<List<Course>> searchCourses(String query) async => [];
+
+  @override
+  Future<String> getMaterialAccessUrl(String materialId) async => '';
 }
 
 class _FakeAuthRepo implements AuthRepository {
@@ -82,7 +85,7 @@ class _FakeAuthRepo implements AuthRepository {
   @override
   Future<void> requestPasswordReset(String email) async {}
   @override
-  Future<void> resetPassword({required String email, required String token, required String newPassword}) async {}
+  Future<void> resetPassword({required String email, required String code, required String newPassword}) async {}
   @override
   Future<void> requestEmailVerification(String email) async {}
   @override

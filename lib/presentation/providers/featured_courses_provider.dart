@@ -4,15 +4,15 @@ import '../../core/di/app_providers.dart';
 import '../../domain/entities/course.dart';
 
 final featuredCoursesProvider = FutureProvider<List<Course>>((ref) async {
-  return ref.watch(courseRepositoryProvider).getFeaturedCourses();
+  return ref.watch(courseRepositoryProvider).getPublishedCourses();
 });
 
-final featuredCoursesControllerProvider =
-    NotifierProvider<FeaturedCoursesController, FeaturedCoursesState>(
-  FeaturedCoursesController.new,
+final publishedCoursesControllerProvider =
+    NotifierProvider<PublishedCoursesController, FeaturedCoursesState>(
+  PublishedCoursesController.new,
 );
 
-class PublishedCoursesController extends Notifier<PublishedCoursesState> {
+class PublishedCoursesController extends Notifier<FeaturedCoursesState> {
   int _requestId = 0;
 
   @override

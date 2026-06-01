@@ -52,6 +52,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(publishedCoursesControllerProvider);
     final courses = state.courses;
+    final isAmharic = ref.watch(settingsProvider).language == 'am';
 
     return Scaffold(
       appBar: AppBar(
@@ -62,7 +63,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
             onPressed: state.isLoading
                 ? null
                 : () => ref
-                    .read(featuredCoursesControllerProvider.notifier)
+                    .read(publishedCoursesControllerProvider.notifier)
                     .loadCourses(query: _query),
             icon: const Icon(Icons.refresh_outlined),
           ),
@@ -70,7 +71,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: () =>
-            ref.read(featuredCoursesControllerProvider.notifier).loadCourses(query: _query),
+            ref.read(publishedCoursesControllerProvider.notifier).loadCourses(query: _query),
         child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(
@@ -123,7 +124,10 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final course = courses[index];
-                    return _CourseGridCard(course: course);
+                    return _CourseGridCard(
+                      course: course,
+                      showBuyButton: !course.isFree,
+                    );
                   },
                   childCount: courses.length,
                 ),

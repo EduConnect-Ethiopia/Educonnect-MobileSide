@@ -69,14 +69,18 @@ class _CoursePlayerScreenState extends ConsumerState<CoursePlayerScreen> {
     _playerController?.dispose();
 
     Assessment? quiz;
-    if (_currentLesson.playType == LessonPlayType.quiz) {
+    Assessment? assignment;
+    if (_currentLesson.playType == LessonPlayType.quiz || _currentLesson.playType == LessonPlayType.assignment) {
       final assessments = await ref.read(
         upcomingAssessmentsProvider(widget.course.id).future,
       );
-        final quizAssessments = assessments
-          .where((a) => a.isQuiz || a.isExam)
-          .toList();
-      quiz = quizAssessments.isNotEmpty ? quizAssessments.first : null;
+      if (_currentLesson.playType == LessonPlayType.quiz) {
+        final quizAssessments = assessments.where((a) => a.isQuiz || a.isExam).toList();
+        quiz = quizAssessments.isNotEmpty ? quizAssessments.first : null;
+      } else {
+        final assignmentAssessments = assessments.where((a) => a.isAssignment).toList();
+        assignment = assignmentAssessments.isNotEmpty ? assignmentAssessments.first : null;
+      }
     }
 
     if (!mounted) return;
@@ -96,6 +100,7 @@ class _CoursePlayerScreenState extends ConsumerState<CoursePlayerScreen> {
         },
         liveSession: widget.liveSession,
         quizAssessment: quiz,
+        assignmentAssessment: assignment,
         initialVideoPosition: _videoPosition,
         onPositionChanged: (pos) {
           ref.read(progressRepositoryProvider).saveVideoPosition(

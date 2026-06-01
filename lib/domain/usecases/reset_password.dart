@@ -7,12 +7,12 @@ class ResetPassword {
 
   Future<void> call({
     required String email,
-    required String token,
+    required String code,
     required String newPassword,
   }) {
     return _repository.resetPassword(
       email: email,
-      token: token,
+      code: code,
       newPassword: newPassword,
     );
   }

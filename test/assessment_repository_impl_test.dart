@@ -44,6 +44,13 @@ class _FakeAssessmentRemote implements AssessmentRemoteDataSource {
       attemptNumber: 2,
     );
   }
+
+  @override
+  Future<void> submitAssignment({
+    required String assessmentId,
+    required String filePath,
+    String content = '',
+  }) async {}
 }
 
 void main() {
@@ -53,6 +60,7 @@ void main() {
         assessmentId: 'a1',
         courseId: 'c1',
         title: 'Quiz 1',
+        assessmentType: 'Quiz',
         description: 'desc',
         passingScore: 60,
         timeLimitMinutes: 20,
@@ -86,6 +94,7 @@ void main() {
         assessmentId: 'a1',
         courseId: 'c1',
         title: 'Quiz 1',
+        assessmentType: 'Quiz',
         description: 'desc',
         passingScore: 60,
         timeLimitMinutes: 20,

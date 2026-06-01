@@ -99,7 +99,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String newPassword,
   }) async {
     await _remoteDataSource.resetPassword(
-      ResetPasswordRequest(email: email, token: token, newPassword: newPassword),
+      ResetPasswordRequest(email: email, token: code, newPassword: newPassword),
     );
   }
 

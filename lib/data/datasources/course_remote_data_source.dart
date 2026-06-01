@@ -74,50 +74,15 @@ class DioCourseRemoteDataSource implements CourseRemoteDataSource {
   }
 
   @override
-  Future<List<CourseModel>> searchCourses(String query) async {
-    final response = await _dio.get<dynamic>(
-      ApiEndpoints.courseSearch,
-      queryParameters: {'q': query},
-    );
+  Future<String> getMaterialAccessUrl(String materialId) async {
+    final response = await _dio.get<dynamic>(ApiEndpoints.materialAccess(materialId));
     final data = _unwrapApiData(response.data);
-
-    if (data is! List) return const [];
-
-    return data.whereType<Map<String, dynamic>>().map(CourseModel.fromJson).toList();
-  }
-
-  @override
-  Future<List<CourseModel>> searchCourses(String query, {int page = 1, int pageSize = 20}) async {
-    final trimmed = query.trim();
-    if (trimmed.isEmpty) {
-      return getPublishedCourses();
-    }
-
-    final response = await _dio.get<dynamic>(
-      ApiEndpoints.searchCourses,
-      queryParameters: {
-        'query': trimmed,
-        'q': trimmed,
-        'page': page,
-        'pageSize': pageSize,
-      },
-    );
-
-    final data = _unwrapApiData(response.data);
-
-    if (data is List) {
-      return data.whereType<Map<String, dynamic>>().map(CourseModel.fromJson).toList();
-    }
-
+    if (data is String) return data;
     if (data is Map) {
       final map = castJsonMap(data);
-      final items = map['items'];
-      if (items is List) {
-        return items.whereType<Map<String, dynamic>>().map(CourseModel.fromJson).toList();
-      }
+      return (map['url'] ?? map['accessUrl'] ?? '').toString();
     }
-
-    return const [];
+    return '';
   }
 
   @override

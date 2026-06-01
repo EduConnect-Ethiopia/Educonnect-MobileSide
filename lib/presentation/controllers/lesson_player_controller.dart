@@ -7,6 +7,7 @@ import '../../domain/entities/lesson_play_type.dart';
 import '../widgets/html_content_widget.dart';
 import '../widgets/youtube_player_widget.dart';
 import '../screens/assessments/assessment_player_screen.dart';
+import '../screens/assessments/assignment_submission_screen.dart';
 import '../../domain/entities/assessment.dart';
 
 abstract class LessonPlayerController {
@@ -205,10 +206,11 @@ class QuizLessonController implements LessonPlayerController {
 }
 
 class AssignmentLessonController implements LessonPlayerController {
-  AssignmentLessonController({required this.lesson, required this.resolveMaterialAccessUrl});
+  AssignmentLessonController({required this.lesson, required this.resolveMaterialAccessUrl, this.assessment});
 
   final Lesson lesson;
   final MaterialAccessResolver resolveMaterialAccessUrl;
+  final Assessment? assessment;
 
   @override
   Widget buildPlayer(BuildContext context) {
@@ -243,6 +245,24 @@ class AssignmentLessonController implements LessonPlayerController {
                   },
                 ),
               ),
+          if (assessment != null) ...[
+            const SizedBox(height: 32),
+            Center(
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.cloud_upload),
+                label: const Text('Submit Assignment'),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => AssignmentSubmissionScreen(
+                        assessment: assessment!,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -262,6 +282,7 @@ class LessonPlayerControllerFactory {
     int initialVideoPosition = 0,
     void Function(int positionSeconds)? onPositionChanged,
     required Future<void> Function(String materialId) onOpenFile,
+    Assessment? assignmentAssessment,
   }) {
     if (liveSession != null) {
       return LiveLessonController(session: liveSession);
@@ -295,6 +316,7 @@ class LessonPlayerControllerFactory {
         return AssignmentLessonController(
           lesson: lesson,
           resolveMaterialAccessUrl: resolveMaterialAccessUrl,
+          assessment: assignmentAssessment,
         );
       case LessonPlayType.unknown:
         return ArticleLessonController(
