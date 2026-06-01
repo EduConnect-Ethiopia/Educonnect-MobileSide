@@ -97,9 +97,7 @@ class Material {
 
   String get fullContentUrl {
     if (contentUrl == null || contentUrl!.isEmpty) return '';
-    if (contentUrl!.startsWith('http')) return contentUrl!;
-    // Secure token access is required for local files
-    return '';
+    return contentUrl!;
   }
 
   bool get isVideo => type == 4;

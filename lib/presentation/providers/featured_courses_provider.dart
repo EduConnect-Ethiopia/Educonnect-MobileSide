@@ -12,7 +12,9 @@ final featuredCoursesControllerProvider =
   FeaturedCoursesController.new,
 );
 
-class FeaturedCoursesController extends Notifier<FeaturedCoursesState> {
+class PublishedCoursesController extends Notifier<PublishedCoursesState> {
+  int _requestId = 0;
+
   @override
   FeaturedCoursesState build() {
     Future<void>.microtask(loadCourses);
@@ -20,24 +22,29 @@ class FeaturedCoursesController extends Notifier<FeaturedCoursesState> {
   }
 
   Future<void> loadCourses({String query = ''}) async {
-    state = state.copyWith(isLoading: true, clearError: true);
+    final currentRequestId = ++_requestId;
+    state = state.copyWith(isLoading: true, query: query, clearError: true);
 
     try {
-      final all = await ref.read(courseRepositoryProvider).getFeaturedCourses();
-      final courses = query.isEmpty
-          ? all
-          : all.where((c) {
-              final q = query.toLowerCase();
-              return c.title.toLowerCase().contains(q) || c.category.toLowerCase().contains(q);
-            }).toList();
+      final repository = ref.read(courseRepositoryProvider);
+      final courses = query.trim().isEmpty
+          ? await repository.getPublishedCourses()
+          : await repository.searchCourses(query);
+
+      if (currentRequestId != _requestId) return;
+
       state = state.copyWith(
         isLoading: false,
+        query: query,
         courses: courses,
         clearError: true,
       );
     } on Object {
+      if (currentRequestId != _requestId) return;
+
       state = state.copyWith(
         isLoading: false,
+        query: query,
         errorMessage: 'Failed to load courses. Please try again.',
       );
     }
@@ -47,27 +54,32 @@ class FeaturedCoursesController extends Notifier<FeaturedCoursesState> {
 class FeaturedCoursesState {
   const FeaturedCoursesState({
     required this.isLoading,
+    required this.query,
     required this.courses,
     this.errorMessage,
   });
 
   const FeaturedCoursesState.initial()
     : isLoading = false,
+      query = '',
       courses = const [],
       errorMessage = null;
 
   final bool isLoading;
+  final String query;
   final List<Course> courses;
   final String? errorMessage;
 
   FeaturedCoursesState copyWith({
     bool? isLoading,
+    String? query,
     List<Course>? courses,
     String? errorMessage,
     bool clearError = false,
   }) {
     return FeaturedCoursesState(
       isLoading: isLoading ?? this.isLoading,
+      query: query ?? this.query,
       courses: courses ?? this.courses,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
     );

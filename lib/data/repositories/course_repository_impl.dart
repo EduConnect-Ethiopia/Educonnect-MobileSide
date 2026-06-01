@@ -33,16 +33,7 @@ class CourseRepositoryImpl implements CourseRepository {
   @override
   Future<List<Course>> searchCourses(String query) async {
     final courses = await _remoteDataSource.searchCourses(query);
-    final q = query.trim().toLowerCase();
-    final filtered = q.isEmpty
-      ? courses
-      : courses.where((c) {
-        final title = c.title.toLowerCase();
-        final category = c.category.toLowerCase();
-        return title.contains(q) || category.contains(q);
-        }).toList();
-
-    return filtered.map((c) => c.toEntity()).toList();
+    return courses.map((c) => c.toEntity()).toList();
   }
 
   @override

@@ -46,11 +46,11 @@ class _MyCoursesScreenState extends ConsumerState<MyCoursesScreen>
           controller: _tabController,
           isScrollable: true,
           tabAlignment: TabAlignment.start,
-          tabs: [
-            Tab(text: isAmharic ? 'ሁሉም' : 'All'),
-            Tab(text: isAmharic ? 'በሂደት' : 'In Progress'),
-            Tab(text: isAmharic ? 'ተጠናቀቀ' : 'Completed'),
-            Tab(text: isAmharic ? 'ተተወ' : 'Dropped'),
+          tabs: const [
+            Tab(text: 'All'),
+            Tab(text: 'In Progress'),
+            Tab(text: 'Completed'),
+            Tab(text: 'Dropped'),
           ],
         ),
         actions: [

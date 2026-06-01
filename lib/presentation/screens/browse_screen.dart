@@ -42,19 +42,16 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
   void _onSearchChanged() {
     _debouncer.run(() {
       if (!mounted) return;
-      final query = _searchController.text.trim();
-      setState(() => _query = query);
-      ref.read(featuredCoursesControllerProvider.notifier).loadCourses(query: query);
+      final nextQuery = _searchController.text.trim();
+      setState(() => _query = nextQuery);
+      ref.read(publishedCoursesControllerProvider.notifier).loadCourses(query: nextQuery);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(featuredCoursesControllerProvider);
+    final state = ref.watch(publishedCoursesControllerProvider);
     final courses = state.courses;
-    final isAmharic = ref.watch(settingsProvider).language == 'am';
-    final myCourses = ref.watch(myCoursesProvider).value ?? const <Course>[];
-    final ownedCourseIds = myCourses.map((course) => course.id).toSet();
 
     return Scaffold(
       appBar: AppBar(
@@ -88,7 +85,12 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                         ? null
                         : IconButton(
                             icon: const Icon(Icons.clear),
-                            onPressed: () => _searchController.clear(),
+                            onPressed: () {
+                              _searchController.clear();
+                              ref
+                                  .read(publishedCoursesControllerProvider.notifier)
+                                  .loadCourses();
+                            },
                           ),
                   ),
                 ),
@@ -121,9 +123,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final course = courses[index];
-                    final isOwned =
-                        ownedCourseIds.contains(course.id) || course.enrollmentId != null;
-                    return _CourseGridCard(course: course, showBuyButton: !isOwned);
+                    return _CourseGridCard(course: course);
                   },
                   childCount: courses.length,
                 ),

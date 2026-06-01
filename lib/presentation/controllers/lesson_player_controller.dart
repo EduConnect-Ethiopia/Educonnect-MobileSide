@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Material;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/entities/course_content.dart';
@@ -13,6 +13,8 @@ abstract class LessonPlayerController {
   Widget buildPlayer(BuildContext context);
   void dispose();
 }
+
+typedef MaterialAccessResolver = Future<String?> Function(String materialId);
 
 class VideoLessonController implements LessonPlayerController {
   VideoLessonController({
@@ -95,13 +97,10 @@ class LiveLessonController implements LessonPlayerController {
 }
 
 class ArticleLessonController implements LessonPlayerController {
-  ArticleLessonController({
-    required this.lesson,
-    required this.onOpenFile,
-  });
+  ArticleLessonController({required this.lesson, required this.resolveMaterialAccessUrl});
 
   final Lesson lesson;
-  final Future<void> Function(String materialId) onOpenFile;
+  final MaterialAccessResolver resolveMaterialAccessUrl;
 
   @override
   Widget buildPlayer(BuildContext context) {
@@ -124,13 +123,29 @@ class ArticleLessonController implements LessonPlayerController {
                   (m) => ListTile(
                     leading: const Icon(Icons.attach_file),
                     title: Text(m.description),
-                    onTap: () => onOpenFile(m.id),
+                    onTap: () => _openMaterial(context, m),
                   ),
                 ),
           ],
         ],
       ),
     );
+  }
+
+  Future<void> _openMaterial(BuildContext context, Material material) async {
+    final accessUrl = await resolveMaterialAccessUrl(material.id);
+    if (accessUrl == null || accessUrl.isEmpty) return;
+    final uri = Uri.parse(accessUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      return;
+    }
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to open this material right now.')),
+      );
+    }
   }
 
   @override
@@ -190,13 +205,10 @@ class QuizLessonController implements LessonPlayerController {
 }
 
 class AssignmentLessonController implements LessonPlayerController {
-  AssignmentLessonController({
-    required this.lesson,
-    required this.onOpenFile,
-  });
+  AssignmentLessonController({required this.lesson, required this.resolveMaterialAccessUrl});
 
   final Lesson lesson;
-  final Future<void> Function(String materialId) onOpenFile;
+  final MaterialAccessResolver resolveMaterialAccessUrl;
 
   @override
   Widget buildPlayer(BuildContext context) {
@@ -213,8 +225,22 @@ class AssignmentLessonController implements LessonPlayerController {
                 (m) => ListTile(
                   leading: const Icon(Icons.assignment),
                   title: Text(m.description),
-                  subtitle: const Text('Tap to open'),
-                  onTap: () => onOpenFile(m.id),
+                  subtitle: Text('Tap to open securely'),
+                  onTap: () async {
+                    final accessUrl = await resolveMaterialAccessUrl(m.id);
+                    if (accessUrl == null || accessUrl.isEmpty) return;
+                    final uri = Uri.parse(accessUrl);
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      return;
+                    }
+
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Unable to open this material right now.')),
+                      );
+                    }
+                  },
                 ),
               ),
         ],
@@ -230,6 +256,7 @@ class LessonPlayerControllerFactory {
   static LessonPlayerController create({
     required Lesson lesson,
     required VoidCallback onComplete,
+    required MaterialAccessResolver resolveMaterialAccessUrl,
     CourseSession? liveSession,
     Assessment? quizAssessment,
     int initialVideoPosition = 0,
@@ -251,7 +278,10 @@ class LessonPlayerControllerFactory {
       case LessonPlayType.live:
         throw StateError('Live lessons require a CourseSession');
       case LessonPlayType.article:
-        return ArticleLessonController(lesson: lesson, onOpenFile: onOpenFile);
+        return ArticleLessonController(
+          lesson: lesson,
+          resolveMaterialAccessUrl: resolveMaterialAccessUrl,
+        );
       case LessonPlayType.quiz:
         if (quizAssessment == null) {
           throw StateError('Quiz lessons require an Assessment');
@@ -262,9 +292,15 @@ class LessonPlayerControllerFactory {
           onComplete: onComplete,
         );
       case LessonPlayType.assignment:
-        return AssignmentLessonController(lesson: lesson, onOpenFile: onOpenFile);
+        return AssignmentLessonController(
+          lesson: lesson,
+          resolveMaterialAccessUrl: resolveMaterialAccessUrl,
+        );
       case LessonPlayType.unknown:
-        return ArticleLessonController(lesson: lesson, onOpenFile: onOpenFile);
+        return ArticleLessonController(
+          lesson: lesson,
+          resolveMaterialAccessUrl: resolveMaterialAccessUrl,
+        );
     }
   }
 }
