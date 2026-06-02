@@ -69,6 +69,12 @@ class _FakeCertRepo implements CertificateRepository {
   Future<cert_entity.Certificate?> getCertificate(String certificateId) async => null;
   @override
   Future<Uint8List> downloadCertificatePdf(String certificateId) async => Uint8List(0);
+  
+  @override
+  Future<Map<String, dynamic>> getEligibility(String courseId) async => {};
+
+  @override
+  Future<cert_entity.Certificate> issueCertificate(String courseId) async => throw UnimplementedError();
 }
 
 void main() {

@@ -31,6 +31,12 @@ class _FakeRemote implements CertificateRemoteDataSource {
     final bytes = downloads[id] ?? <int>[];
     return Uint8List.fromList(bytes);
   }
+
+  @override
+  Future<Map<String, dynamic>> getEligibility(String courseId) async => {};
+
+  @override
+  Future<CertificateDto> issueCertificate(String courseId) async => throw UnimplementedError();
 }
 
 class _FakeCourseRepo implements CourseRepository {

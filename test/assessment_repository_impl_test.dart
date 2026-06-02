@@ -58,6 +58,7 @@ void main() {
     final remote = _FakeAssessmentRemote()
       ..summary = AssessmentSummaryDto(
         assessmentId: 'a1',
+        lessonId: 'l1',
         courseId: 'c1',
         title: 'Quiz 1',
         assessmentType: 'Quiz',
@@ -92,6 +93,7 @@ void main() {
     final remote = _FakeAssessmentRemote()
       ..summary = AssessmentSummaryDto(
         assessmentId: 'a1',
+        lessonId: 'l1',
         courseId: 'c1',
         title: 'Quiz 1',
         assessmentType: 'Quiz',

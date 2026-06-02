@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'dart:ui' show VoidCallback;
 import 'package:flutter/foundation.dart' show kDebugMode;
 
 import '../constants/api_endpoints.dart';
