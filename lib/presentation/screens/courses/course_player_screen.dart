@@ -68,21 +68,6 @@ class _CoursePlayerScreenState extends ConsumerState<CoursePlayerScreen> {
   Future<void> _initPlayer(CourseContent content) async {
     _playerController?.dispose();
 
-    Assessment? quiz;
-    Assessment? assignment;
-    if (_currentLesson.playType == LessonPlayType.quiz || _currentLesson.playType == LessonPlayType.assignment) {
-      final assessments = await ref.read(
-        upcomingAssessmentsProvider(widget.course.id).future,
-      );
-      if (_currentLesson.playType == LessonPlayType.quiz) {
-        final quizAssessments = assessments.where((a) => a.isQuiz || a.isExam).toList();
-        quiz = quizAssessments.isNotEmpty ? quizAssessments.first : null;
-      } else {
-        final assignmentAssessments = assessments.where((a) => a.isAssignment).toList();
-        assignment = assignmentAssessments.isNotEmpty ? assignmentAssessments.first : null;
-      }
-    }
-
     if (!mounted) return;
 
     setState(() {
@@ -99,8 +84,6 @@ class _CoursePlayerScreenState extends ConsumerState<CoursePlayerScreen> {
           }
         },
         liveSession: widget.liveSession,
-        quizAssessment: quiz,
-        assignmentAssessment: assignment,
         initialVideoPosition: _videoPosition,
         onPositionChanged: (pos) {
           ref.read(progressRepositoryProvider).saveVideoPosition(
@@ -129,6 +112,19 @@ class _CoursePlayerScreenState extends ConsumerState<CoursePlayerScreen> {
         },
       );
     });
+  }
+
+  Assessment? _pickAssessmentForLesson(
+    List<Assessment> assessments,
+    String lessonId,
+  ) {
+    if (assessments.isEmpty) return null;
+    for (final assessment in assessments) {
+      if (assessment.lessonId == lessonId) {
+        return assessment;
+      }
+    }
+    return assessments.first;
   }
 
   Future<void> _markLessonComplete() async {

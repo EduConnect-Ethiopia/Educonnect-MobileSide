@@ -9,6 +9,9 @@ import '../../providers/assessment_provider.dart';
 import '../../providers/course_detail_provider.dart';
 import '../../providers/progress_provider.dart';
 import '../assessments/assessment_player_screen.dart';
+import '../../../core/di/app_providers.dart';
+import '../../providers/certificate_provider.dart';
+import '../certificates/certificate_detail_screen.dart';
 import '../certificates/certificate_list_screen.dart';
 import '../assessments/assignment_submission_screen.dart';
 import '../courses/course_player_screen.dart';
@@ -27,6 +30,7 @@ class CourseProgressScreen extends ConsumerStatefulWidget {
 }
 
 class _CourseProgressScreenState extends ConsumerState<CourseProgressScreen> {
+  bool _issuingCertificate = false;
   @override
   void initState() {
     super.initState();
@@ -265,20 +269,95 @@ class _CourseProgressScreenState extends ConsumerState<CourseProgressScreen> {
     );
   }
 
-  Widget _buildCertificateButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: () {
-          Navigator.of(context).push(
+  Future<void> _openCertificate() async {
+    if (_issuingCertificate) return;
+    setState(() => _issuingCertificate = true);
+
+    try {
+      final eligibility = await ref
+          .read(certificateControllerProvider.notifier)
+          .checkEligibility(widget.course.id);
+
+      if (!mounted) return;
+
+      if (!eligibility.isEligible) {
+        final message = eligibility.missingRequirements.isEmpty
+            ? 'Complete all lessons and pass required assessments to earn your certificate.'
+            : eligibility.missingRequirements.join('\n');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+        return;
+      }
+
+      final existingId = eligibility.existingCertificateId;
+      if (existingId != null && existingId.isNotEmpty) {
+        final existing = await ref
+            .read(certificateRepositoryProvider)
+            .getCertificate(existingId);
+        if (existing != null && mounted) {
+          await Navigator.of(context).push(
             MaterialPageRoute<void>(
-              builder: (_) => const CertificateListScreen(),
+              builder: (_) => CertificateDetailScreen(certificate: existing),
             ),
           );
-        },
-        icon: const Icon(Icons.workspace_premium),
-        label: const Text('View Certificate'),
-      ),
+          return;
+        }
+      }
+
+      final certificate = await ref
+          .read(certificateControllerProvider.notifier)
+          .issueCertificateForCourse(widget.course.id);
+
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => CertificateDetailScreen(certificate: certificate),
+        ),
+      );
+    } on Object catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _issuingCertificate = false);
+      }
+    }
+  }
+
+  Widget _buildCertificateButton() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _issuingCertificate ? null : _openCertificate,
+            icon: _issuingCertificate
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.workspace_premium),
+            label: Text(
+              _issuingCertificate ? 'Preparing certificate...' : 'Get Certificate',
+            ),
+          ),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const CertificateListScreen(),
+              ),
+            );
+          },
+          child: const Text('View all certificates'),
+        ),
+      ],
     );
   }
 }

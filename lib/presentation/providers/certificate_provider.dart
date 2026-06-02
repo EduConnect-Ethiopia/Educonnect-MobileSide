@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../core/di/app_providers.dart';
 import '../../domain/entities/certificate.dart';
+import '../../domain/repositories/certificate_repository.dart';
 
 final certificateControllerProvider =
     NotifierProvider<CertificateController, CertificateState>(
@@ -26,11 +27,22 @@ class CertificateController extends Notifier<CertificateState> {
     }
   }
 
+  Future<Certificate> issueCertificateForCourse(String courseId) async {
+    final cert =
+        await ref.read(certificateRepositoryProvider).issueCertificate(courseId);
+    await loadCertificates();
+    return cert;
+  }
+
+  Future<CertificateEligibility> checkEligibility(String courseId) {
+    return ref.read(certificateRepositoryProvider).getEligibility(courseId);
+  }
+
   Future<File> downloadCertificate(String certificateId) async {
     final bytes = await ref
         .read(certificateRepositoryProvider)
         .downloadCertificatePdf(certificateId);
-    final dir = await getApplicationDocumentsDirectory();
+    final dir = await getTemporaryDirectory();
     final file = File('${dir.path}/certificate-$certificateId.pdf');
     await file.writeAsBytes(bytes);
     return file;

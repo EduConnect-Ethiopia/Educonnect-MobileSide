@@ -22,7 +22,9 @@ class CertificateDto {
       certificateId:
           findString(data, const ['certificateId', 'id']) ?? '',
       courseId: findString(data, const ['courseId']) ?? '',
-      issueDate: parseDateTime(data['issueDate']) ?? DateTime.now(),
+      issueDate:
+          parseDateTime(readJsonValue(data, const ['issueDate'])) ??
+          DateTime.now(),
       certificateUrl: findString(data, const ['certificateUrl']) ?? '',
       verificationCode:
           findString(data, const ['verificationCode']) ?? '',
@@ -44,6 +46,33 @@ class CertificateDto {
       uniqueCode: verificationCode,
       pdfUrl: certificateUrl.isNotEmpty ? certificateUrl : null,
       verificationUrl: '$verifyBase/$verificationCode',
+    );
+  }
+}
+
+class CertificateEligibilityDto {
+  const CertificateEligibilityDto({
+    required this.isEligible,
+    required this.missingRequirements,
+    this.existingCertificateId,
+  });
+
+  final bool isEligible;
+  final List<String> missingRequirements;
+  final String? existingCertificateId;
+
+  factory CertificateEligibilityDto.fromJson(JsonMap json) {
+    final data = findMap(json, const ['data', 'result']) ?? json;
+    final missingRaw = readJsonValue(data, const ['missingRequirements']);
+    final missing = missingRaw is List
+        ? missingRaw.map((e) => e.toString()).toList()
+        : <String>[];
+
+    return CertificateEligibilityDto(
+      isEligible: readJsonValue(data, const ['isEligible']) == true,
+      missingRequirements: missing,
+      existingCertificateId:
+          findString(data, const ['existingCertificateId']),
     );
   }
 }

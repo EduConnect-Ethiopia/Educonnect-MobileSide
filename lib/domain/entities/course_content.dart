@@ -89,7 +89,7 @@ class Material {
 
   final String id;
   final String lessonId;
-  final int type; // 0=Article, 1=File, 2=Image, 3=Quiz, 4=Video
+  final int type; // 0=Article, 1=File, 2=Image, 3=ExternalLink, 4=Video, 5=YouTubeVideo
   final String description;
   final String? textContent;
   final String? contentUrl;
@@ -100,11 +100,12 @@ class Material {
     return contentUrl!;
   }
 
-  bool get isVideo => type == 4;
   bool get isArticle => type == 0;
   bool get isFile => type == 1;
   bool get isImage => type == 2;
-  bool get isQuiz => type == 3;
+  bool get isExternalLink => type == 3;
+  bool get isVideo => type == 4;
+  bool get isYouTubeVideo => type == 5;
 }
 
 class CourseContent {

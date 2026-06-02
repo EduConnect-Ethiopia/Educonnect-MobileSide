@@ -13,19 +13,17 @@ final myCoursesProvider = FutureProvider<List<Course>>((ref) async {
   final courses = <Course>[];
   
   for (final enrollment in enrollments) {
-    if (enrollment.isActive) {
-      try {
-        final course = await ref.read(courseRepositoryProvider).getCourseById(enrollment.courseId);
-        courses.add(
-          course.copyWith(
-            enrolledAt: enrollment.enrolledAt,
-            enrollmentId: enrollment.id,
-            enrollmentStatus: enrollment.status,
-          ),
-        );
-      } catch (_) {
-        // Skip courses that fail to load
-      }
+    try {
+      final course = await ref.read(courseRepositoryProvider).getCourseById(enrollment.courseId);
+      courses.add(
+        course.copyWith(
+          enrolledAt: enrollment.enrolledAt,
+          enrollmentId: enrollment.id,
+          enrollmentStatus: enrollment.status,
+        ),
+      );
+    } catch (_) {
+      // Skip courses that fail to load
     }
   }
   

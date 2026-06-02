@@ -23,6 +23,7 @@ class Assessment {
     required this.durationMinutes,
     required this.passingScore,
     required this.questions,
+    this.lessonId,
     this.dueDate,
     this.attemptLimit = 3,
     this.shuffleQuestions = false,
@@ -30,6 +31,7 @@ class Assessment {
 
   final String id;
   final String courseId;
+  final String? lessonId;
   final String title;
   final String description;
   final AssessmentType type;

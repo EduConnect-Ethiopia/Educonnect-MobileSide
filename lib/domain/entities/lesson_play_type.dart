@@ -4,8 +4,7 @@ enum LessonPlayType { video, article, quiz, assignment, live, unknown }
 
 extension LessonPlayTypeExtension on Lesson {
   LessonPlayType get playType {
-    if (materials.any((m) => m.isVideo)) return LessonPlayType.video;
-    if (materials.any((m) => m.isQuiz)) return LessonPlayType.quiz;
+    if (materials.any((m) => m.isVideo || m.isYouTubeVideo)) return LessonPlayType.video;
     if (materials.any((m) => m.isArticle)) return LessonPlayType.article;
     if (materials.any((m) => m.isFile)) return LessonPlayType.assignment;
     return LessonPlayType.unknown;

@@ -51,9 +51,8 @@ class DioAssessmentRemoteDataSource implements AssessmentRemoteDataSource {
     final response = await _dio.get<dynamic>(
       ApiEndpoints.assessmentQuestions(assessmentId),
     );
-    final list = _unwrapList(response.data);
-    final questions = list
-        .map((json) => AssessmentQuestionDto.fromJson(castJsonMap(json)))
+    final questions = unwrapJsonList(response.data)
+        .map(AssessmentQuestionDto.fromJson)
         .toList()
       ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
     return questions;
@@ -100,12 +99,13 @@ class DioAssessmentRemoteDataSource implements AssessmentRemoteDataSource {
     await _dio.post<dynamic>(
       ApiEndpoints.submitAssignment,
       data: formData,
+      options: Options(contentType: 'multipart/form-data'),
     );
   }
 
   List<AssessmentSummaryDto> _mapAssessmentList(Object? value) {
-    return _unwrapList(value)
-        .map((json) => AssessmentSummaryDto.fromJson(castJsonMap(json)))
+    return unwrapJsonList(value)
+        .map(AssessmentSummaryDto.fromJson)
         .where((a) => _isPublished(a.status))
         .toList();
   }
@@ -117,17 +117,4 @@ class DioAssessmentRemoteDataSource implements AssessmentRemoteDataSource {
         normalized == '1';
   }
 
-  List<Map<String, dynamic>> _unwrapList(Object? value) {
-    if (value is List) {
-      return value.whereType<Map<String, dynamic>>().toList();
-    }
-    if (value is Map) {
-      final map = castJsonMap(value);
-      final data = map['data'];
-      if (data is List) {
-        return data.whereType<Map<String, dynamic>>().toList();
-      }
-    }
-    return const [];
-  }
 }

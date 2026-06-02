@@ -10,6 +10,8 @@ abstract class CertificateRemoteDataSource {
   Future<List<CertificateDto>> getMyCertificates();
   Future<CertificateDto?> getCertificate(String id);
   Future<Uint8List> downloadCertificatePdf(String id);
+  Future<CertificateEligibilityDto> getEligibility(String courseId);
+  Future<CertificateDto> issueCertificate(String courseId);
 }
 
 class DioCertificateRemoteDataSource implements CertificateRemoteDataSource {
@@ -20,9 +22,8 @@ class DioCertificateRemoteDataSource implements CertificateRemoteDataSource {
   @override
   Future<List<CertificateDto>> getMyCertificates() async {
     final response = await _dio.get<dynamic>(ApiEndpoints.certificates);
-    final data = _unwrapList(response.data);
-    return data
-        .map((json) => CertificateDto.fromJson(castJsonMap(json)))
+    return unwrapJsonList(response.data)
+        .map(CertificateDto.fromJson)
         .toList();
   }
 
@@ -30,6 +31,22 @@ class DioCertificateRemoteDataSource implements CertificateRemoteDataSource {
   Future<CertificateDto?> getCertificate(String id) async {
     final response = await _dio.get<dynamic>(ApiEndpoints.certificate(id));
     if (response.data == null) return null;
+    return CertificateDto.fromJson(castJsonMap(response.data));
+  }
+
+  @override
+  Future<CertificateEligibilityDto> getEligibility(String courseId) async {
+    final response = await _dio.get<dynamic>(
+      ApiEndpoints.certificateEligibility(courseId),
+    );
+    return CertificateEligibilityDto.fromJson(castJsonMap(response.data));
+  }
+
+  @override
+  Future<CertificateDto> issueCertificate(String courseId) async {
+    final response = await _dio.post<dynamic>(
+      ApiEndpoints.certificateIssue(courseId),
+    );
     return CertificateDto.fromJson(castJsonMap(response.data));
   }
 
@@ -42,17 +59,4 @@ class DioCertificateRemoteDataSource implements CertificateRemoteDataSource {
     return Uint8List.fromList(response.data ?? []);
   }
 
-  List<Map<String, dynamic>> _unwrapList(Object? value) {
-    if (value is List) {
-      return value.whereType<Map<String, dynamic>>().toList();
-    }
-    if (value is Map) {
-      final map = castJsonMap(value);
-      final data = map['data'];
-      if (data is List) {
-        return data.whereType<Map<String, dynamic>>().toList();
-      }
-    }
-    return const [];
-  }
 }

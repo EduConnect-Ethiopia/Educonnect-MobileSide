@@ -3,12 +3,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/entities/course_content.dart';
 import '../../domain/entities/course_session.dart';
-import '../../domain/entities/lesson_play_type.dart';
 import '../widgets/html_content_widget.dart';
 import '../widgets/youtube_player_widget.dart';
-import '../screens/assessments/assessment_player_screen.dart';
-import '../screens/assessments/assignment_submission_screen.dart';
-import '../../domain/entities/assessment.dart';
 
 abstract class LessonPlayerController {
   Widget buildPlayer(BuildContext context);
@@ -16,34 +12,6 @@ abstract class LessonPlayerController {
 }
 
 typedef MaterialAccessResolver = Future<String?> Function(String materialId);
-
-class VideoLessonController implements LessonPlayerController {
-  VideoLessonController({
-    required this.lesson,
-    required this.onComplete,
-    this.initialPositionSeconds = 0,
-    this.onPositionChanged,
-  });
-
-  final Lesson lesson;
-  final VoidCallback onComplete;
-  final int initialPositionSeconds;
-  final void Function(int positionSeconds)? onPositionChanged;
-
-  @override
-  Widget buildPlayer(BuildContext context) {
-    return YouTubePlayerWidget(
-      videoUrl: lesson.videoUrl ?? '',
-      title: lesson.title,
-      initialPositionSeconds: initialPositionSeconds,
-      onVideoComplete: onComplete,
-      onPositionChanged: onPositionChanged,
-    );
-  }
-
-  @override
-  void dispose() {}
-}
 
 class LiveLessonController implements LessonPlayerController {
   LiveLessonController({required this.session});
@@ -97,174 +65,202 @@ class LiveLessonController implements LessonPlayerController {
   void dispose() {}
 }
 
-class ArticleLessonController implements LessonPlayerController {
-  ArticleLessonController({required this.lesson, required this.resolveMaterialAccessUrl});
+class SequentialLessonController implements LessonPlayerController {
+  SequentialLessonController({
+    required this.lesson,
+    required this.resolveMaterialAccessUrl,
+    required this.onOpenFile,
+    required this.onComplete,
+    this.initialVideoPositionSeconds = 0,
+    this.onPositionChanged,
+  }) {
+    sortedMaterials = List<Material>.from(lesson.materials)
+      ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+  }
 
   final Lesson lesson;
   final MaterialAccessResolver resolveMaterialAccessUrl;
+  final Future<void> Function(String materialId) onOpenFile;
+  final VoidCallback onComplete;
+  final int initialVideoPositionSeconds;
+  final void Function(int positionSeconds)? onPositionChanged;
+  late final List<Material> sortedMaterials;
 
   @override
   Widget buildPlayer(BuildContext context) {
-    return SingleChildScrollView(
+    if (sortedMaterials.isEmpty) {
+      return const Center(child: Text('No lesson materials available yet.'));
+    }
+
+    return ListView.separated(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          HtmlContentWidget(htmlContent: lesson.articleHtml ?? lesson.summary),
-          if (lesson.hasAttachments) ...[
-            const SizedBox(height: 24),
-            Text(
-              'Attachments',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            ...lesson.materials
-                .where((m) => m.isFile)
-                .map(
-                  (m) => ListTile(
-                    leading: const Icon(Icons.attach_file),
-                    title: Text(m.description),
-                    onTap: () => _openMaterial(context, m),
-                  ),
-                ),
-          ],
-        ],
-      ),
+      itemCount: sortedMaterials.length + 1,
+      separatorBuilder: (_, __) => const SizedBox(height: 24),
+      itemBuilder: (context, index) {
+        if (index == sortedMaterials.length) {
+           return const SizedBox(height: 48);
+        }
+        final material = sortedMaterials[index];
+        return _buildMaterialWidget(context, material);
+      },
     );
   }
 
-  Future<void> _openMaterial(BuildContext context, Material material) async {
-    final accessUrl = await resolveMaterialAccessUrl(material.id);
-    if (accessUrl == null || accessUrl.isEmpty) return;
-    final uri = Uri.parse(accessUrl);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-      return;
-    }
-
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to open this material right now.')),
+  Widget _buildMaterialWidget(BuildContext context, Material material) {
+    if (material.isArticle) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (material.description.isNotEmpty) ...[
+            Text(material.description, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+          ],
+          HtmlContentWidget(htmlContent: material.textContent ?? ''),
+        ],
       );
     }
-  }
+    
+    if (material.isImage) {
+      return _buildImageMaterial(context, material);
+    }
 
-  @override
-  void dispose() {}
-}
-
-class QuizLessonController implements LessonPlayerController {
-  QuizLessonController({
-    required this.lesson,
-    required this.assessment,
-    required this.onComplete,
-  });
-
-  final Lesson lesson;
-  final Assessment assessment;
-  final VoidCallback onComplete;
-
-  @override
-  Widget buildPlayer(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.quiz, size: 64),
-            const SizedBox(height: 16),
-            Text(
-              lesson.title,
-              style: Theme.of(context).textTheme.titleLarge,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(assessment.description),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => AssessmentPlayerScreen(
-                      assessment: assessment,
-                      onPassed: onComplete,
-                    ),
-                  ),
-                );
-              },
-              child: const Text('Start Quiz'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  @override
-  void dispose() {}
-}
-
-class AssignmentLessonController implements LessonPlayerController {
-  AssignmentLessonController({required this.lesson, required this.resolveMaterialAccessUrl, this.assessment});
-
-  final Lesson lesson;
-  final MaterialAccessResolver resolveMaterialAccessUrl;
-  final Assessment? assessment;
-
-  @override
-  Widget buildPlayer(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
+    if (material.isYouTubeVideo) {
+      return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(lesson.title, style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 12),
-          Text(lesson.summary),
-          const SizedBox(height: 16),
-          ...lesson.materials.where((m) => m.isFile).map(
-                (m) => ListTile(
-                  leading: const Icon(Icons.assignment),
-                  title: Text(m.description),
-                  subtitle: Text('Tap to open securely'),
-                  onTap: () async {
-                    final accessUrl = await resolveMaterialAccessUrl(m.id);
-                    if (accessUrl == null || accessUrl.isEmpty) return;
+          if (material.description.isNotEmpty) ...[
+            Text(material.description, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+          ],
+          YouTubePlayerWidget(
+            videoUrl: material.fullContentUrl,
+            title: material.description,
+            initialPositionSeconds: initialVideoPositionSeconds,
+            onPositionChanged: onPositionChanged,
+            onVideoComplete: () {}, 
+          ),
+        ],
+      );
+    }
+
+    if (material.isVideo) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (material.description.isNotEmpty) ...[
+            Text(material.description, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+          ],
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.video_library),
+              title: Text(material.description.isEmpty ? 'Video Content' : material.description),
+              subtitle: const Text('Tap to view video in native player'),
+              onTap: () async {
+                 final accessUrl = await resolveMaterialAccessUrl(material.id);
+                 if (accessUrl != null && accessUrl.isNotEmpty) {
                     final uri = Uri.parse(accessUrl);
                     if (await canLaunchUrl(uri)) {
                       await launchUrl(uri, mode: LaunchMode.externalApplication);
-                      return;
                     }
+                 }
+              },
+            )
+          )
+        ],
+      );
+    }
 
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Unable to open this material right now.')),
-                      );
-                    }
-                  },
-                ),
-              ),
-          if (assessment != null) ...[
-            const SizedBox(height: 32),
-            Center(
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.cloud_upload),
-                label: const Text('Submit Assignment'),
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => AssignmentSubmissionScreen(
-                        assessment: assessment!,
+    if (material.isFile) {
+      return Card(
+        child: ListTile(
+          leading: const Icon(Icons.picture_as_pdf),
+          title: Text(material.description.isEmpty ? 'Document/PDF' : material.description),
+          subtitle: const Text('Tap to view or download'),
+          onTap: () => onOpenFile(material.id),
+        ),
+      );
+    }
+
+    if (material.isExternalLink) {
+      return Card(
+        child: ListTile(
+          leading: const Icon(Icons.link),
+          title: Text(material.description.isEmpty ? 'External Resource' : material.description),
+          subtitle: Text(material.fullContentUrl),
+          trailing: const Icon(Icons.open_in_browser),
+          onTap: () async {
+            if (material.fullContentUrl.isNotEmpty) {
+               final uri = Uri.parse(material.fullContentUrl);
+               if (await canLaunchUrl(uri)) {
+                 await launchUrl(uri, mode: LaunchMode.externalApplication);
+               }
+            }
+          },
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildImageMaterial(BuildContext context, Material material) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (material.description.isNotEmpty) ...[
+          Text(material.description, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+        ],
+        GestureDetector(
+          onTap: () {
+            showDialog(
+              context: context,
+              builder: (context) => Dialog(
+                backgroundColor: Colors.transparent,
+                insetPadding: EdgeInsets.zero,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    InteractiveViewer(
+                      panEnabled: true,
+                      minScale: 0.5,
+                      maxScale: 4,
+                      child: Image.network(
+                        material.fullContentUrl,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.error, color: Colors.white)),
                       ),
                     ),
-                  );
-                },
+                    Positioned(
+                      top: 40,
+                      right: 20,
+                      child: IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              material.fullContentUrl,
+              fit: BoxFit.cover,
+              width: double.infinity,
+              errorBuilder: (_, __, ___) => Container(
+                width: double.infinity,
+                height: 200,
+                color: Colors.grey[300],
+                child: const Icon(Icons.broken_image, size: 50, color: Colors.grey),
               ),
             ),
-          ],
-        ],
-      ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -278,51 +274,21 @@ class LessonPlayerControllerFactory {
     required VoidCallback onComplete,
     required MaterialAccessResolver resolveMaterialAccessUrl,
     CourseSession? liveSession,
-    Assessment? quizAssessment,
     int initialVideoPosition = 0,
     void Function(int positionSeconds)? onPositionChanged,
     required Future<void> Function(String materialId) onOpenFile,
-    Assessment? assignmentAssessment,
   }) {
     if (liveSession != null) {
       return LiveLessonController(session: liveSession);
     }
 
-    switch (lesson.playType) {
-      case LessonPlayType.video:
-        return VideoLessonController(
-          lesson: lesson,
-          onComplete: onComplete,
-          initialPositionSeconds: initialVideoPosition,
-          onPositionChanged: onPositionChanged,
-        );
-      case LessonPlayType.live:
-        throw StateError('Live lessons require a CourseSession');
-      case LessonPlayType.article:
-        return ArticleLessonController(
-          lesson: lesson,
-          resolveMaterialAccessUrl: resolveMaterialAccessUrl,
-        );
-      case LessonPlayType.quiz:
-        if (quizAssessment == null) {
-          throw StateError('Quiz lessons require an Assessment');
-        }
-        return QuizLessonController(
-          lesson: lesson,
-          assessment: quizAssessment,
-          onComplete: onComplete,
-        );
-      case LessonPlayType.assignment:
-        return AssignmentLessonController(
-          lesson: lesson,
-          resolveMaterialAccessUrl: resolveMaterialAccessUrl,
-          assessment: assignmentAssessment,
-        );
-      case LessonPlayType.unknown:
-        return ArticleLessonController(
-          lesson: lesson,
-          resolveMaterialAccessUrl: resolveMaterialAccessUrl,
-        );
-    }
+    return SequentialLessonController(
+      lesson: lesson,
+      resolveMaterialAccessUrl: resolveMaterialAccessUrl,
+      onOpenFile: onOpenFile,
+      onComplete: onComplete,
+      initialVideoPositionSeconds: initialVideoPosition,
+      onPositionChanged: onPositionChanged,
+    );
   }
 }

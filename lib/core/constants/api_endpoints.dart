@@ -62,7 +62,7 @@ class ApiEndpoints {
   static String startAssessment(String assessmentId) =>
       '/api/Submission/start/$assessmentId';
   static const submitAssessment = '/api/Submission/submit';
-  static const submitAssignment = '/api/Submission';
+  static const submitAssignment = '/api/Submission/assignment/submit';
 
   // Notifications
   static const notifications = '/api/Notification';

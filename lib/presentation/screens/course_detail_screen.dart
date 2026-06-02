@@ -25,6 +25,9 @@ class CourseDetailScreen extends ConsumerWidget {
     final sessionsAsync = ref.watch(courseSessionsAsyncProvider(course.id));
     final assessmentsAsync = ref.watch(upcomingAssessmentsProvider(course.id));
     final enrollmentState = ref.watch(enrollmentControllerProvider);
+    final myEnrollments = ref.watch(myEnrollmentsProvider).value ?? [];
+    final isEnrolled = myEnrollments.any((e) => e.courseId == course.id && e.isActive);
+    final hasAccess = course.isFree || course.enrollmentId != null || isEnrolled;
 
     return Scaffold(
       appBar: AppBar(
@@ -63,6 +66,7 @@ class CourseDetailScreen extends ConsumerWidget {
                 child: _CourseActions(
                   course: course,
                   enrollmentState: enrollmentState,
+                  hasAccess: hasAccess,
                 ),
               ),
 
@@ -83,16 +87,18 @@ class CourseDetailScreen extends ConsumerWidget {
                         style: Theme.of(context).textTheme.bodyMedium,
                       )
                     else
-                      ...content.modules.map((module) {
+                  ...content.modules.map((module) {
                         return _ModuleListTile(
                           module: module,
                           course: course,
                           content: content,
+                          hasAccess: hasAccess,
                         );
                       }),
                   ],
                 ),
               ),
+
 
               // Live Sessions Section
               sessionsAsync.when(
@@ -219,14 +225,16 @@ class _CourseActions extends ConsumerWidget {
   const _CourseActions({
     required this.course,
     required this.enrollmentState,
+    required this.hasAccess,
   });
 
   final Course course;
   final EnrollmentState enrollmentState;
+  final bool hasAccess;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (course.enrollmentId != null) {
+    if (hasAccess) {
       return SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
@@ -367,11 +375,13 @@ class _ModuleListTile extends StatefulWidget {
     required this.module,
     required this.course,
     required this.content,
+    required this.hasAccess,
   });
 
   final Module module;
   final Course course;
   final CourseContent content;
+  final bool hasAccess;
 
   @override
   State<_ModuleListTile> createState() => _ModuleListTileState();
@@ -380,7 +390,7 @@ class _ModuleListTile extends StatefulWidget {
 class _ModuleListTileState extends State<_ModuleListTile> {
   @override
   Widget build(BuildContext context) {
-    final hasAccess = widget.course.isFree || widget.course.enrollmentId != null;
+    final hasAccess = widget.hasAccess;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),

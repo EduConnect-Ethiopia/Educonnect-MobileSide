@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/di/app_providers.dart';
 import '../../../domain/entities/assessment.dart';
 import '../../controllers/assessment_controller.dart';
 import '../../widgets/question_widgets.dart';
@@ -25,26 +26,75 @@ class AssessmentPlayerScreen extends ConsumerStatefulWidget {
 
 class _AssessmentPlayerScreenState
     extends ConsumerState<AssessmentPlayerScreen> {
-  late AssessmentController _controller;
+  Assessment? _assessment;
+  AssessmentController? _controller;
   Timer? _timer;
   Timer? _autoSaveTimer;
   int _remainingSeconds = 0;
   final Set<int> _flagged = {};
+  bool _loading = true;
+  String? _loadError;
+  bool _submitting = false;
+
+  Assessment get _activeAssessment => _assessment ?? widget.assessment;
 
   @override
   void initState() {
     super.initState();
-    _controller = AssessmentController(
-      assessment: widget.assessment,
-      ref: ref,
-    );
-    _remainingSeconds = widget.assessment.durationMinutes * 60;
-    _controller.ensureStarted();
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    Assessment assessment = widget.assessment;
+    if (assessment.questions.isEmpty) {
+      try {
+        final loaded = await ref
+            .read(assessmentRepositoryProvider)
+            .getAssessment(assessment.id);
+        if (loaded != null) {
+          assessment = loaded;
+        }
+      } on Object catch (error) {
+        if (mounted) {
+          setState(() {
+            _loadError = error.toString();
+            _loading = false;
+          });
+        }
+        return;
+      }
+    }
+
+    if (!mounted) return;
+
+    final controller = AssessmentController(assessment: assessment, ref: ref);
+    setState(() {
+      _assessment = assessment;
+      _controller = controller;
+      _remainingSeconds = assessment.durationMinutes * 60;
+      _loading = false;
+      _loadError = assessment.questions.isEmpty
+          ? 'This assessment has no questions yet.'
+          : null;
+    });
+
+    if (assessment.questions.isEmpty) return;
+
+    try {
+      await controller.ensureStarted();
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() => _loadError = error.toString());
+      return;
+    }
+
+    if (!mounted) return;
     _startTimer();
     _startAutoSave();
   }
 
   void _startTimer() {
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_remainingSeconds <= 0) {
         timer.cancel();
@@ -56,6 +106,7 @@ class _AssessmentPlayerScreenState
   }
 
   void _startAutoSave() {
+    _autoSaveTimer?.cancel();
     _autoSaveTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -68,11 +119,14 @@ class _AssessmentPlayerScreenState
   }
 
   Future<void> _submitAssessment({bool force = false}) async {
+    final controller = _controller;
+    if (controller == null || _submitting) return;
+
     _timer?.cancel();
     _autoSaveTimer?.cancel();
 
     if (force) {
-      await _finishSubmit();
+      await _finishSubmit(controller);
       return;
     }
 
@@ -94,33 +148,52 @@ class _AssessmentPlayerScreenState
       ),
     );
 
-    if (confirmed != true || !mounted) return;
-    await _finishSubmit();
+    if (confirmed != true || !mounted) {
+      if (_activeAssessment.questions.isNotEmpty) {
+        _startTimer();
+        _startAutoSave();
+      }
+      return;
+    }
+    await _finishSubmit(controller);
   }
 
-  Future<void> _finishSubmit() async {
-    final result = await _controller.submit();
-    if (result.passed) {
-      widget.onPassed?.call();
-    }
+  Future<void> _finishSubmit(AssessmentController controller) async {
+    setState(() => _submitting = true);
+    try {
+      final result = await controller.submit();
+      if (result.passed) {
+        widget.onPassed?.call();
+      }
 
-    if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute<void>(
-        builder: (context) => AssessmentResultScreen(
-          assessment: widget.assessment,
-          result: result,
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute<void>(
+          builder: (context) => AssessmentResultScreen(
+            assessment: _activeAssessment,
+            result: result,
+          ),
         ),
-      ),
-    );
+      );
+    } on Object catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+      setState(() => _submitting = false);
+      if (_activeAssessment.questions.isNotEmpty) {
+        _startTimer();
+        _startAutoSave();
+      }
+    }
   }
 
   @override
   void dispose() {
     _timer?.cancel();
     _autoSaveTimer?.cancel();
-    _controller.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
@@ -128,51 +201,98 @@ class _AssessmentPlayerScreenState
   Widget build(BuildContext context) {
     final minutes = _remainingSeconds ~/ 60;
     final seconds = (_remainingSeconds % 60).toString().padLeft(2, '0');
+    final controller = _controller;
 
     return PopScope(
       canPop: false,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(widget.assessment.title),
+          title: Text(_activeAssessment.title),
           actions: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Center(
-                child: Text(
-                  '$minutes:$seconds',
-                  style: const TextStyle(fontSize: 18),
+            if (!_loading && _loadError == null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Center(
+                  child: Text(
+                    '$minutes:$seconds',
+                    style: const TextStyle(fontSize: 18),
+                  ),
                 ),
               ),
-            ),
           ],
         ),
-        body: Column(
-          children: [
-            Expanded(
-              child: PageView.builder(
-                controller: _controller.pageController,
-                onPageChanged: (i) => setState(() {}),
-                itemCount: widget.assessment.questions.length,
-                itemBuilder: (context, index) {
-                  return QuestionWidget(
-                    question: widget.assessment.questions[index],
-                    onAnswer: (answer) =>
-                        _controller.saveAnswer(index, answer),
-                    initialAnswer: _controller.getAnswer(index),
-                  );
-                },
-              ),
-            ),
-            _buildNavigationButtons(),
-          ],
-        ),
+        body: _buildBody(controller),
       ),
     );
   }
 
-  Widget _buildNavigationButtons() {
-    final index = _controller.pageController.hasClients
-        ? _controller.pageController.page?.round() ?? 0
+  Widget _buildBody(AssessmentController? controller) {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_loadError != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48),
+              const SizedBox(height: 16),
+              Text(_loadError!, textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _loading = true;
+                    _loadError = null;
+                  });
+                  _bootstrap();
+                },
+                child: const Text('Retry'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Go back'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (controller == null) {
+      return const SizedBox.shrink();
+    }
+
+    final questions = _activeAssessment.questions;
+
+    return Column(
+      children: [
+        Expanded(
+          child: PageView.builder(
+            controller: controller.pageController,
+            onPageChanged: (_) => setState(() {}),
+            itemCount: questions.length,
+            itemBuilder: (context, index) {
+              return QuestionWidget(
+                question: questions[index],
+                onAnswer: (answer) => controller.saveAnswer(index, answer),
+                initialAnswer: controller.getAnswer(index),
+              );
+            },
+          ),
+        ),
+        _buildNavigationButtons(controller),
+      ],
+    );
+  }
+
+  Widget _buildNavigationButtons(AssessmentController controller) {
+    final questions = _activeAssessment.questions;
+    final index = controller.pageController.hasClients
+        ? controller.pageController.page?.round() ?? 0
         : 0;
 
     return Padding(
@@ -182,9 +302,7 @@ class _AssessmentPlayerScreenState
           IconButton(
             tooltip: 'Flag for review',
             icon: Icon(
-              _flagged.contains(index)
-                  ? Icons.flag
-                  : Icons.outlined_flag,
+              _flagged.contains(index) ? Icons.flag : Icons.outlined_flag,
               color: _flagged.contains(index) ? Colors.orange : null,
             ),
             onPressed: () {
@@ -199,20 +317,28 @@ class _AssessmentPlayerScreenState
           ),
           TextButton(
             onPressed: index > 0
-                ? () => _controller.goToQuestion(index - 1)
+                ? () => controller.goToQuestion(index - 1)
                 : null,
             child: const Text('Previous'),
           ),
           const Spacer(),
-          if (index < widget.assessment.questions.length - 1)
+          if (index < questions.length - 1)
             ElevatedButton(
-              onPressed: () => _controller.goToQuestion(index + 1),
+              onPressed: _submitting
+                  ? null
+                  : () => controller.goToQuestion(index + 1),
               child: const Text('Next'),
             )
           else
             ElevatedButton(
-              onPressed: _submitAssessment,
-              child: const Text('Submit'),
+              onPressed: _submitting ? null : _submitAssessment,
+              child: _submitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Submit'),
             ),
         ],
       ),

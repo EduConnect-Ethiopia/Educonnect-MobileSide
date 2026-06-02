@@ -58,6 +58,27 @@ class CertificateRepositoryImpl implements CertificateRepository {
     return _remote.downloadCertificatePdf(certificateId);
   }
 
+  @override
+  Future<CertificateEligibility> getEligibility(String courseId) async {
+    final dto = await _remote.getEligibility(courseId);
+    return CertificateEligibility(
+      isEligible: dto.isEligible,
+      missingRequirements: dto.missingRequirements,
+      existingCertificateId: dto.existingCertificateId,
+    );
+  }
+
+  @override
+  Future<Certificate> issueCertificate(String courseId) async {
+    final dto = await _remote.issueCertificate(courseId);
+    final user = await _authRepository.getCurrentUser();
+    return dto.toEntity(
+      courseTitle: await _courseTitle(dto.courseId),
+      learnerName: user?.fullName ?? 'Learner',
+      publicBaseUrl: _verifyBaseUrl(),
+    );
+  }
+
   Future<String> _courseTitle(String courseId) async {
     try {
       final course = await _courseRepository.getCourseById(courseId);

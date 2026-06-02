@@ -61,17 +61,18 @@ class _QuestionWidgetState extends State<QuestionWidget> {
 
   Widget _buildMultipleChoice() {
     final groupValue = widget.initialAnswer as int?;
-    return RadioGroup<int>(
-      groupValue: groupValue,
-      onChanged: (value) => widget.onAnswer(value),
-      child: Column(
-        children: List.generate(widget.question.options.length, (index) {
-          return RadioListTile<int>(
-            value: index,
-            title: Text(widget.question.options[index]),
-          );
-        }),
-      ),
+    if (widget.question.options.isEmpty) {
+      return const Text('No answer choices are available for this question.');
+    }
+    return Column(
+      children: List.generate(widget.question.options.length, (index) {
+        return RadioListTile<int>(
+          value: index,
+          groupValue: groupValue,
+          onChanged: (value) => widget.onAnswer(value),
+          title: Text(widget.question.options[index]),
+        );
+      }),
     );
   }
 
