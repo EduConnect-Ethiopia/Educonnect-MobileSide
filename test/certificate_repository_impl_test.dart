@@ -33,7 +33,11 @@ class _FakeRemote implements CertificateRemoteDataSource {
   }
 
   @override
+<<<<<<< Updated upstream
   Future<Map<String, dynamic>> getEligibility(String courseId) async => {};
+=======
+  Future<CertificateEligibilityDto> getEligibility(String courseId) async => throw UnimplementedError();
+>>>>>>> Stashed changes
 
   @override
   Future<CertificateDto> issueCertificate(String courseId) async => throw UnimplementedError();
