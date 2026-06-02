@@ -11,6 +11,7 @@ import 'package:educonnect_mobile/domain/repositories/course_repository.dart';
 import 'package:educonnect_mobile/domain/repositories/auth_repository.dart';
 import 'package:educonnect_mobile/domain/entities/course_content.dart';
 import 'package:educonnect_mobile/domain/entities/course_session.dart';
+import 'package:educonnect_mobile/domain/repositories/certificate_repository.dart';
 
 class _FakeRemote implements CertificateRemoteDataSource {
   List<CertificateDto> dtos = [];
@@ -33,11 +34,7 @@ class _FakeRemote implements CertificateRemoteDataSource {
   }
 
   @override
-<<<<<<< Updated upstream
-  Future<Map<String, dynamic>> getEligibility(String courseId) async => {};
-=======
-  Future<CertificateEligibilityDto> getEligibility(String courseId) async => throw UnimplementedError();
->>>>>>> Stashed changes
+  Future<CertificateEligibilityDto> getEligibility(String courseId) async => const CertificateEligibilityDto(isEligible: false, missingRequirements: []);
 
   @override
   Future<CertificateDto> issueCertificate(String courseId) async => throw UnimplementedError();

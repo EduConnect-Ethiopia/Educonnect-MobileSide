@@ -47,6 +47,7 @@ class EnrollmentController extends Notifier<EnrollmentState> {
       await ref.read(enrollmentRepositoryProvider).enroll(courseId);
       state = state.copyWith(
         isEnrolling: false,
+        enrolledCourseIds: [...state.enrolledCourseIds, courseId],
         successMessage: 'Successfully enrolled in course!',
       );
       
@@ -93,27 +94,32 @@ class EnrollmentController extends Notifier<EnrollmentState> {
 class EnrollmentState {
   const EnrollmentState({
     required this.isEnrolling,
+    required this.enrolledCourseIds,
     this.successMessage,
     this.errorMessage,
   });
 
   const EnrollmentState.initial()
     : isEnrolling = false,
+      enrolledCourseIds = const [],
       successMessage = null,
       errorMessage = null;
 
   final bool isEnrolling;
+  final List<String> enrolledCourseIds;
   final String? successMessage;
   final String? errorMessage;
 
   EnrollmentState copyWith({
     bool? isEnrolling,
+    List<String>? enrolledCourseIds,
     String? successMessage,
     String? errorMessage,
     bool clearError = false,
   }) {
     return EnrollmentState(
       isEnrolling: isEnrolling ?? this.isEnrolling,
+      enrolledCourseIds: enrolledCourseIds ?? this.enrolledCourseIds,
       successMessage: successMessage ?? this.successMessage,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
     );

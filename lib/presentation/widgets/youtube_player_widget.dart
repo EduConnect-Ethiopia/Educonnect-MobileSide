@@ -32,53 +32,78 @@ class _YouTubePlayerWidgetState extends ConsumerState<YouTubePlayerWidget> {
   YoutubePlayerController? _controller;
   Timer? _progressTimer;
   bool _completedFired = false;
-  double _playbackSpeed = 1;
+  double _playbackSpeed = 1.0;
+  bool _isReady = false;
+  String? _videoId;
 
   @override
   void initState() {
     super.initState();
-    _initPlayer();
+    _videoId = YouTubeUtils.extractVideoId(widget.videoUrl);
+    if (_videoId != null) {
+      _initPlayer(_videoId!);
+    }
   }
 
-  Future<void> _initPlayer() async {
-    final videoId = YouTubeUtils.extractVideoId(widget.videoUrl);
-    if (videoId == null) return;
+  Future<void> _initPlayer(String videoId) async {
+    // Clean up any existing controller
+    _progressTimer?.cancel();
+    await _controller?.close();
 
-    final controller = YoutubePlayerController(
+    final controller = YoutubePlayerController.fromVideoId(
+      videoId: videoId,
+      startSeconds: widget.initialPositionSeconds > 0
+          ? widget.initialPositionSeconds.toDouble()
+          : null,
+      autoPlay: false,
       params: const YoutubePlayerParams(
         showControls: true,
         showFullscreenButton: true,
         enableCaption: true,
         strictRelatedVideos: true,
+        mute: false,
       ),
     );
 
-    await controller.cueVideoById(
-      videoId: videoId,
-      startSeconds: widget.initialPositionSeconds.toDouble(),
-    );
+    controller.listen((event) {
+      if (!mounted) return;
+      if (event.playerState == PlayerState.playing && !_isReady) {
+        setState(() => _isReady = true);
+      }
+    });
 
-    if (!mounted) return;
-    setState(() => _controller = controller);
+    if (!mounted) {
+      await controller.close();
+      return;
+    }
+
+    setState(() {
+      _controller = controller;
+    });
+
     _startProgressTracking(controller);
   }
 
   void _startProgressTracking(YoutubePlayerController controller) {
     _progressTimer?.cancel();
     _progressTimer = Timer.periodic(const Duration(seconds: 2), (_) async {
-      final current = await controller.currentTime;
-      final duration = await controller.duration;
       if (!mounted) return;
+      try {
+        final current = await controller.currentTime;
+        final duration = await controller.duration;
 
-      final position = current.floor();
-      widget.onPositionChanged?.call(position);
+        final positionSeconds = current.floor();
+        widget.onPositionChanged?.call(positionSeconds);
 
-      if (duration > 0 && !_completedFired) {
-        final progress = current / duration;
-        if (progress >= 0.9) {
-          _completedFired = true;
-          widget.onVideoComplete();
+        if (duration > 0 && !_completedFired) {
+          final progress = current / duration;
+          if (progress >= 0.9) {
+            _completedFired = true;
+            widget.onVideoComplete();
+          }
         }
+      } catch (_) {
+        // Ignore errors from polling — player may have been disposed
       }
     });
   }
@@ -92,36 +117,74 @@ class _YouTubePlayerWidgetState extends ConsumerState<YouTubePlayerWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final videoId = YouTubeUtils.extractVideoId(widget.videoUrl);
+    final videoId = _videoId;
 
     if (videoId == null) {
-      return Center(
-        child: Text('Invalid video URL: ${widget.videoUrl}'),
+      return Container(
+        height: 220,
+        color: Colors.black,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.link_off, color: Colors.white60, size: 40),
+                const SizedBox(height: 12),
+                Text(
+                  'Invalid YouTube URL:\n${widget.videoUrl}',
+                  style: const TextStyle(color: Colors.white70),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
       );
     }
 
-    if (_controller == null) {
-      return const Center(child: CircularProgressIndicator());
+    final controller = _controller;
+    if (controller == null) {
+      return Container(
+        height: 220,
+        color: Colors.black,
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: Colors.white),
+              SizedBox(height: 12),
+              Text('Loading video...', style: TextStyle(color: Colors.white70)),
+            ],
+          ),
+        ),
+      );
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        AspectRatio(
-          aspectRatio: 16 / 9,
-          child: YoutubePlayer(
-            controller: _controller!,
+        // The YoutubePlayerControllerProvider is critical in v5+ —
+        // it must wrap the YoutubePlayer so the widget can find the controller.
+        YoutubePlayerControllerProvider(
+          controller: controller,
+          child: AspectRatio(
             aspectRatio: 16 / 9,
+            child: YoutubePlayer(
+              controller: controller,
+              aspectRatio: 16 / 9,
+            ),
           ),
         ),
         Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
             children: [
-              const Text('Speed:'),
+              const Text('Speed:', style: TextStyle(fontWeight: FontWeight.w500)),
               const SizedBox(width: 8),
               DropdownButton<double>(
                 value: _playbackSpeed,
+                underline: const SizedBox.shrink(),
                 items: const [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
                     .map(
                       (s) => DropdownMenuItem(
@@ -133,25 +196,26 @@ class _YouTubePlayerWidgetState extends ConsumerState<YouTubePlayerWidget> {
                 onChanged: (speed) async {
                   if (speed == null) return;
                   setState(() => _playbackSpeed = speed);
-                  await _controller!.setPlaybackRate(speed);
+                  await controller.setPlaybackRate(speed);
                 },
               ),
               const Spacer(),
               IconButton(
-                tooltip: 'Download for offline (metadata)',
-                icon: const Icon(Icons.download_outlined),
+                tooltip: 'Bookmark video',
+                icon: const Icon(Icons.bookmark_outline),
                 onPressed: () => _saveOfflineBookmark(videoId),
               ),
             ],
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            widget.title,
-            style: Theme.of(context).textTheme.titleMedium,
+        if (widget.title.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              widget.title,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
           ),
-        ),
       ],
     );
   }

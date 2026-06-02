@@ -27,7 +27,7 @@ class CourseDetailScreen extends ConsumerWidget {
     final enrollmentState = ref.watch(enrollmentControllerProvider);
     final myEnrollments = ref.watch(myEnrollmentsProvider).value ?? [];
     final isEnrolled = myEnrollments.any((e) => e.courseId == course.id && e.isActive);
-    final hasAccess = course.isFree || course.enrollmentId != null || isEnrolled;
+    final hasAccess = course.enrollmentId != null || isEnrolled || enrollmentState.enrolledCourseIds.contains(course.id);
 
     return Scaffold(
       appBar: AppBar(
@@ -153,7 +153,7 @@ class CourseDetailScreen extends ConsumerWidget {
                   }
 
                   final canAccessAssignments =
-                      course.isFree || course.enrollmentId != null;
+                      course.isFree || hasAccess;
 
                   return Padding(
                     padding: const EdgeInsets.all(16),
@@ -278,8 +278,8 @@ class _CourseActions extends ConsumerWidget {
           ),
         ],
         if (!hasAccess) ...[
-        if (!course.isFree) ...[
-          SizedBox(
+          if (!course.isFree) ...[
+            SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: () async {
@@ -334,6 +334,7 @@ class _CourseActions extends ConsumerWidget {
             label: Text(course.isFree ? 'Enroll Free' : 'Buy / Enroll'),
           ),
         ),
+        ],
       ],
     );
   }

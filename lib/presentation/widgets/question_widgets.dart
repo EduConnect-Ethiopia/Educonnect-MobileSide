@@ -19,6 +19,38 @@ class QuestionWidget extends StatefulWidget {
 }
 
 class _QuestionWidgetState extends State<QuestionWidget> {
+  TextEditingController? _textController;
+
+  @override
+  void initState() {
+    super.initState();
+    _initController();
+  }
+
+  @override
+  void didUpdateWidget(QuestionWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.question.id != widget.question.id) {
+      _initController();
+    }
+  }
+
+  void _initController() {
+    if (widget.question.type == QuestionType.fillBlank || 
+        widget.question.type == QuestionType.essay) {
+      _textController?.dispose();
+      _textController = TextEditingController(
+        text: widget.initialAnswer?.toString() ?? '',
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _textController?.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -107,9 +139,7 @@ class _QuestionWidgetState extends State<QuestionWidget> {
         border: OutlineInputBorder(),
         hintText: 'Your answer',
       ),
-      controller: TextEditingController(
-        text: widget.initialAnswer?.toString() ?? '',
-      ),
+      controller: _textController,
       onChanged: widget.onAnswer,
     );
   }
@@ -121,9 +151,7 @@ class _QuestionWidgetState extends State<QuestionWidget> {
         border: OutlineInputBorder(),
         hintText: 'Write your answer (min. 20 characters)',
       ),
-      controller: TextEditingController(
-        text: widget.initialAnswer?.toString() ?? '',
-      ),
+      controller: _textController,
       onChanged: widget.onAnswer,
     );
   }
