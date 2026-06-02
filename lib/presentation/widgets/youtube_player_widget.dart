@@ -170,27 +170,24 @@ class _YouTubePlayerWidgetState extends ConsumerState<YouTubePlayerWidget> {
           controller: controller,
           child: AspectRatio(
             aspectRatio: 16 / 9,
-            child: YoutubePlayer(
-              controller: controller,
-              aspectRatio: 16 / 9,
-            ),
+            child: YoutubePlayer(controller: controller, aspectRatio: 16 / 9),
           ),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
             children: [
-              const Text('Speed:', style: TextStyle(fontWeight: FontWeight.w500)),
+              const Text(
+                'Speed:',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
               const SizedBox(width: 8),
               DropdownButton<double>(
                 value: _playbackSpeed,
                 underline: const SizedBox.shrink(),
                 items: const [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
                     .map(
-                      (s) => DropdownMenuItem(
-                        value: s,
-                        child: Text('${s}x'),
-                      ),
+                      (s) => DropdownMenuItem(value: s, child: Text('${s}x')),
                     )
                     .toList(),
                 onChanged: (speed) async {

@@ -36,7 +36,7 @@ class _QuestionWidgetState extends State<QuestionWidget> {
   }
 
   void _initController() {
-    if (widget.question.type == QuestionType.fillBlank || 
+    if (widget.question.type == QuestionType.fillBlank ||
         widget.question.type == QuestionType.essay) {
       _textController?.dispose();
       _textController = TextEditingController(
@@ -60,9 +60,9 @@ class _QuestionWidgetState extends State<QuestionWidget> {
         children: [
           Text(
             'Question',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: Colors.grey,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelLarge?.copyWith(color: Colors.grey),
           ),
           const SizedBox(height: 8),
           Text(
@@ -100,7 +100,9 @@ class _QuestionWidgetState extends State<QuestionWidget> {
       children: List.generate(widget.question.options.length, (index) {
         return RadioListTile<int>(
           value: index,
+          // ignore: deprecated_member_use
           groupValue: groupValue,
+          // ignore: deprecated_member_use
           onChanged: (value) => widget.onAnswer(value),
           title: Text(widget.question.options[index]),
         );

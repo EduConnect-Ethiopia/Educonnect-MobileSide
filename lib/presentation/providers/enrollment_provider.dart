@@ -11,10 +11,12 @@ final myEnrollmentsProvider = FutureProvider<List<Enrollment>>((ref) async {
 final myCoursesProvider = FutureProvider<List<Course>>((ref) async {
   final enrollments = await ref.watch(myEnrollmentsProvider.future);
   final courses = <Course>[];
-  
+
   for (final enrollment in enrollments) {
     try {
-      final course = await ref.read(courseRepositoryProvider).getCourseById(enrollment.courseId);
+      final course = await ref
+          .read(courseRepositoryProvider)
+          .getCourseById(enrollment.courseId);
       courses.add(
         course.copyWith(
           enrolledAt: enrollment.enrolledAt,
@@ -26,13 +28,14 @@ final myCoursesProvider = FutureProvider<List<Course>>((ref) async {
       // Skip courses that fail to load
     }
   }
-  
+
   return courses;
 });
 
-final enrollmentControllerProvider = NotifierProvider<EnrollmentController, EnrollmentState>(
-  EnrollmentController.new,
-);
+final enrollmentControllerProvider =
+    NotifierProvider<EnrollmentController, EnrollmentState>(
+      EnrollmentController.new,
+    );
 
 class EnrollmentController extends Notifier<EnrollmentState> {
   @override
@@ -50,7 +53,7 @@ class EnrollmentController extends Notifier<EnrollmentState> {
         enrolledCourseIds: [...state.enrolledCourseIds, courseId],
         successMessage: 'Successfully enrolled in course!',
       );
-      
+
       // Invalidate the enrollments cache
       ref.invalidate(myEnrollmentsProvider);
       ref.invalidate(myCoursesProvider);
@@ -71,7 +74,7 @@ class EnrollmentController extends Notifier<EnrollmentState> {
         isEnrolling: false,
         successMessage: 'Successfully unenrolled from course.',
       );
-      
+
       // Invalidate the enrollments cache
       ref.invalidate(myEnrollmentsProvider);
       ref.invalidate(myCoursesProvider);
@@ -84,10 +87,7 @@ class EnrollmentController extends Notifier<EnrollmentState> {
   }
 
   void clearMessages() {
-    state = state.copyWith(
-      successMessage: null,
-      errorMessage: null,
-    );
+    state = state.copyWith(successMessage: null, errorMessage: null);
   }
 }
 

@@ -11,7 +11,7 @@ import 'package:educonnect_mobile/domain/repositories/course_repository.dart';
 import 'package:educonnect_mobile/domain/repositories/auth_repository.dart';
 import 'package:educonnect_mobile/domain/entities/course_content.dart';
 import 'package:educonnect_mobile/domain/entities/course_session.dart';
-import 'package:educonnect_mobile/domain/repositories/certificate_repository.dart';
+
 
 class _FakeRemote implements CertificateRemoteDataSource {
   List<CertificateDto> dtos = [];
@@ -24,7 +24,10 @@ class _FakeRemote implements CertificateRemoteDataSource {
 
   @override
   Future<CertificateDto?> getCertificate(String id) async {
-    return dtos.firstWhere((d) => d.certificateId == id, orElse: () => throw StateError('not found'));
+    return dtos.firstWhere(
+      (d) => d.certificateId == id,
+      orElse: () => throw StateError('not found'),
+    );
   }
 
   @override
@@ -34,10 +37,15 @@ class _FakeRemote implements CertificateRemoteDataSource {
   }
 
   @override
-  Future<CertificateEligibilityDto> getEligibility(String courseId) async => const CertificateEligibilityDto(isEligible: false, missingRequirements: []);
+  Future<CertificateEligibilityDto> getEligibility(String courseId) async =>
+      const CertificateEligibilityDto(
+        isEligible: false,
+        missingRequirements: [],
+      );
 
   @override
-  Future<CertificateDto> issueCertificate(String courseId) async => throw UnimplementedError();
+  Future<CertificateDto> issueCertificate(String courseId) async =>
+      throw UnimplementedError();
 }
 
 class _FakeCourseRepo implements CourseRepository {
@@ -55,7 +63,8 @@ class _FakeCourseRepo implements CourseRepository {
   Future<List<Course>> getActiveCoursesForLearner(String userId) async => [];
 
   @override
-  Future<CourseContent> getCourseContent(String courseId) async => throw UnimplementedError();
+  Future<CourseContent> getCourseContent(String courseId) async =>
+      throw UnimplementedError();
 
   @override
   Future<List<CourseSession>> getCourseSessions(String courseId) async => [];
@@ -76,9 +85,16 @@ class _FakeAuthRepo implements AuthRepository {
 
   // other methods not used in test
   @override
-  Future<AuthSession> login({required String email, required String password}) async => throw UnimplementedError();
+  Future<AuthSession> login({
+    required String email,
+    required String password,
+  }) async => throw UnimplementedError();
   @override
-  Future<AuthSession> register({required String fullName, required String email, required String password}) async => throw UnimplementedError();
+  Future<AuthSession> register({
+    required String fullName,
+    required String email,
+    required String password,
+  }) async => throw UnimplementedError();
   @override
   Future<void> logout() async {}
   @override
@@ -92,56 +108,72 @@ class _FakeAuthRepo implements AuthRepository {
   @override
   Future<void> requestPasswordReset(String email) async {}
   @override
-  Future<void> resetPassword({required String email, required String code, required String newPassword}) async {}
+  Future<void> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {}
   @override
   Future<void> requestEmailVerification(String email) async {}
   @override
-  Future<void> confirmEmailVerification({required String email, required String code}) async {}
+  Future<void> confirmEmailVerification({
+    required String email,
+    required String code,
+  }) async {}
   @override
   Future<void> resendEmailVerification(String email) async {}
 }
 
 void main() {
-  test('maps certificate DTOs to entities with course titles and learner name', () async {
-    final remote = _FakeRemote();
-    remote.dtos = [
-      CertificateDto(
-        certificateId: 'cert-1',
-        courseId: 'course-1',
-        issueDate: DateTime.parse('2024-01-01'),
-        certificateUrl: 'https://cdn/cert-1.pdf',
-        verificationCode: 'ABC123',
-      ),
-    ];
+  test(
+    'maps certificate DTOs to entities with course titles and learner name',
+    () async {
+      final remote = _FakeRemote();
+      remote.dtos = [
+        CertificateDto(
+          certificateId: 'cert-1',
+          courseId: 'course-1',
+          issueDate: DateTime.parse('2024-01-01'),
+          certificateUrl: 'https://cdn/cert-1.pdf',
+          verificationCode: 'ABC123',
+        ),
+      ];
 
-    final course = Course(
-      id: 'course-1',
-      title: 'Intro to Testing',
-      description: '',
-      category: 'dev',
-      mode: 0,
-      status: 1,
-      price: 0,
-      instructor: 'Instructor',
-    );
+      final course = Course(
+        id: 'course-1',
+        title: 'Intro to Testing',
+        description: '',
+        category: 'dev',
+        mode: 0,
+        status: 1,
+        price: 0,
+        instructor: 'Instructor',
+      );
 
-    final courseRepo = _FakeCourseRepo({'course-1': course});
-    final authRepo = _FakeAuthRepo(const AuthenticatedUser(id: 'u1', email: 'a@b', fullName: 'Ada Lovelace'));
+      final courseRepo = _FakeCourseRepo({'course-1': course});
+      final authRepo = _FakeAuthRepo(
+        const AuthenticatedUser(
+          id: 'u1',
+          email: 'a@b',
+          fullName: 'Ada Lovelace',
+        ),
+      );
 
-    final repo = CertificateRepositoryImpl(
-      remoteDataSource: remote,
-      courseRepository: courseRepo,
-      authRepository: authRepo,
-    );
+      final repo = CertificateRepositoryImpl(
+        remoteDataSource: remote,
+        courseRepository: courseRepo,
+        authRepository: authRepo,
+      );
 
-    final certs = await repo.getCertificates();
-    expect(certs.length, 1);
-    final c = certs.first;
-    expect(c.courseTitle, 'Intro to Testing');
-    expect(c.learnerName, 'Ada Lovelace');
-    expect(c.pdfUrl, 'https://cdn/cert-1.pdf');
-    expect(c.uniqueCode, 'ABC123');
-  });
+      final certs = await repo.getCertificates();
+      expect(certs.length, 1);
+      final c = certs.first;
+      expect(c.courseTitle, 'Intro to Testing');
+      expect(c.learnerName, 'Ada Lovelace');
+      expect(c.pdfUrl, 'https://cdn/cert-1.pdf');
+      expect(c.uniqueCode, 'ABC123');
+    },
+  );
 
   test('downloadCertificatePdf returns bytes from remote', () async {
     final remote = _FakeRemote();
@@ -149,7 +181,11 @@ void main() {
 
     final courseRepo = _FakeCourseRepo({});
     final authRepo = _FakeAuthRepo(null);
-    final repo = CertificateRepositoryImpl(remoteDataSource: remote, courseRepository: courseRepo, authRepository: authRepo);
+    final repo = CertificateRepositoryImpl(
+      remoteDataSource: remote,
+      courseRepository: courseRepo,
+      authRepository: authRepo,
+    );
 
     final bytes = await repo.downloadCertificatePdf('cert-2');
     expect(bytes, Uint8List.fromList([1, 2, 3, 4]));

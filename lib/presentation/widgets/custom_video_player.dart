@@ -125,7 +125,8 @@ class _CustomVideoPlayerWidgetState
       if (mounted) {
         setState(() {
           _isInitializing = false;
-          _errorMessage = 'Failed to load video. Please check your connection and try again.\n\nDetails: $e';
+          _errorMessage =
+              'Failed to load video. Please check your connection and try again.\n\nDetails: $e';
         });
       }
     }
@@ -193,11 +194,18 @@ class _CustomVideoPlayerWidgetState
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
+                const Icon(
+                  Icons.error_outline,
+                  color: Colors.redAccent,
+                  size: 48,
+                ),
                 const SizedBox(height: 12),
                 const Text(
                   'Video failed to load',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(

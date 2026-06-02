@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
-import '../../domain/entities/assessment.dart';
+
 import '../../domain/entities/course.dart';
 import '../../domain/entities/course_content.dart';
 import '../../domain/entities/course_session.dart';
@@ -26,13 +26,16 @@ class CourseDetailScreen extends ConsumerWidget {
     final assessmentsAsync = ref.watch(upcomingAssessmentsProvider(course.id));
     final enrollmentState = ref.watch(enrollmentControllerProvider);
     final myEnrollments = ref.watch(myEnrollmentsProvider).value ?? [];
-    final isEnrolled = myEnrollments.any((e) => e.courseId == course.id && e.isActive);
-    final hasAccess = course.enrollmentId != null || isEnrolled || enrollmentState.enrolledCourseIds.contains(course.id);
+    final isEnrolled = myEnrollments.any(
+      (e) => e.courseId == course.id && e.isActive,
+    );
+    final hasAccess =
+        course.enrollmentId != null ||
+        isEnrolled ||
+        enrollmentState.enrolledCourseIds.contains(course.id);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(course.title),
-      ),
+      appBar: AppBar(title: Text(course.title)),
       body: contentAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(
@@ -48,7 +51,8 @@ class CourseDetailScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: () => ref.invalidate(courseContentAsyncProvider(course.id)),
+                onPressed: () =>
+                    ref.invalidate(courseContentAsyncProvider(course.id)),
                 child: const Text('Try Again'),
               ),
             ],
@@ -87,7 +91,7 @@ class CourseDetailScreen extends ConsumerWidget {
                         style: Theme.of(context).textTheme.bodyMedium,
                       )
                     else
-                  ...content.modules.map((module) {
+                      ...content.modules.map((module) {
                         return _ModuleListTile(
                           module: module,
                           course: course,
@@ -99,21 +103,20 @@ class CourseDetailScreen extends ConsumerWidget {
                 ),
               ),
 
-
               // Live Sessions Section
               sessionsAsync.when(
                 loading: () => const Padding(
                   padding: EdgeInsets.all(16),
                   child: SizedBox(
                     height: 40,
-                    child: Center(
-                      child: CircularProgressIndicator(),
-                    ),
+                    child: Center(child: CircularProgressIndicator()),
                   ),
                 ),
                 error: (error, stackTrace) => const SizedBox.shrink(),
                 data: (sessions) {
-                  if (hasAccess && course.isInstructorLed && sessions.isNotEmpty) {
+                  if (hasAccess &&
+                      course.isInstructorLed &&
+                      sessions.isNotEmpty) {
                     return Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
@@ -143,7 +146,7 @@ class CourseDetailScreen extends ConsumerWidget {
                     child: Center(child: CircularProgressIndicator()),
                   ),
                 ),
-                error: (_, __) => const SizedBox.shrink(),
+                error: (e, stack) => const SizedBox.shrink(),
                 data: (assessments) {
                   final assignments = assessments
                       .where((assessment) => assessment.isAssignment)
@@ -152,8 +155,7 @@ class CourseDetailScreen extends ConsumerWidget {
                     return const SizedBox.shrink();
                   }
 
-                  final canAccessAssignments =
-                      course.isFree || hasAccess;
+                  final canAccessAssignments = course.isFree || hasAccess;
 
                   return Padding(
                     padding: const EdgeInsets.all(16),
@@ -187,9 +189,10 @@ class CourseDetailScreen extends ConsumerWidget {
                                   ? () {
                                       Navigator.of(context).push(
                                         MaterialPageRoute<void>(
-                                          builder: (_) => AssignmentSubmissionScreen(
-                                            assessment: assignment,
-                                          ),
+                                          builder: (_) =>
+                                              AssignmentSubmissionScreen(
+                                                assessment: assignment,
+                                              ),
                                         ),
                                       );
                                     }
@@ -218,7 +221,6 @@ class CourseDetailScreen extends ConsumerWidget {
       ),
     );
   }
-
 }
 
 class _CourseActions extends ConsumerWidget {
@@ -254,8 +256,12 @@ class _CourseActions extends ConsumerWidget {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () {
-                final content = ref.read(courseContentAsyncProvider(course.id)).value;
-                if (content != null && content.modules.isNotEmpty && content.modules.first.lessons.isNotEmpty) {
+                final content = ref
+                    .read(courseContentAsyncProvider(course.id))
+                    .value;
+                if (content != null &&
+                    content.modules.isNotEmpty &&
+                    content.modules.first.lessons.isNotEmpty) {
                   final lesson = content.modules.first.lessons.first;
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
@@ -268,7 +274,11 @@ class _CourseActions extends ConsumerWidget {
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Select a lesson below to resume learning.')),
+                    const SnackBar(
+                      content: Text(
+                        'Select a lesson below to resume learning.',
+                      ),
+                    ),
                   );
                 }
               },
@@ -280,60 +290,66 @@ class _CourseActions extends ConsumerWidget {
         if (!hasAccess) ...[
           if (!course.isFree) ...[
             SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  await ref
+                      .read(cartControllerProvider.notifier)
+                      .addToCart(course);
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Added to cart')),
+                  );
+                },
+                icon: const Icon(Icons.shopping_cart_outlined),
+                label: const Text('Add to Cart'),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+          SizedBox(
             width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () async {
-                await ref.read(cartControllerProvider.notifier).addToCart(course);
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Added to cart')),
-                );
-              },
-              icon: const Icon(Icons.shopping_cart_outlined),
-              label: const Text('Add to Cart'),
+            child: ElevatedButton.icon(
+              onPressed: enrollmentState.isEnrolling
+                  ? null
+                  : () async {
+                      if (course.price > 0 && !course.isFree) {
+                        await ref
+                            .read(cartControllerProvider.notifier)
+                            .addToCart(course);
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Added to cart — proceed to checkout',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+                      await ref
+                          .read(enrollmentControllerProvider.notifier)
+                          .enrollCourse(course.id);
+                      if (!context.mounted) return;
+                      final msg = ref
+                          .read(enrollmentControllerProvider)
+                          .successMessage;
+                      if (msg != null) {
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text(msg)));
+                      }
+                    },
+              icon: enrollmentState.isEnrolling
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.add_circle_outline),
+              label: Text(course.isFree ? 'Enroll Free' : 'Buy / Enroll'),
             ),
           ),
-          const SizedBox(height: 8),
-        ],
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: enrollmentState.isEnrolling
-                ? null
-                : () async {
-                    if (course.price > 0 && !course.isFree) {
-                      await ref
-                          .read(cartControllerProvider.notifier)
-                          .addToCart(course);
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Added to cart — proceed to checkout'),
-                        ),
-                      );
-                      return;
-                    }
-                    await ref
-                        .read(enrollmentControllerProvider.notifier)
-                        .enrollCourse(course.id);
-                    if (!context.mounted) return;
-                    final msg = ref.read(enrollmentControllerProvider).successMessage;
-                    if (msg != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(msg)),
-                      );
-                    }
-                  },
-            icon: enrollmentState.isEnrolling
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.add_circle_outline),
-            label: Text(course.isFree ? 'Enroll Free' : 'Buy / Enroll'),
-          ),
-        ),
         ],
       ],
     );
@@ -355,23 +371,23 @@ class _CourseHeader extends StatelessWidget {
         children: [
           Text(
             course.title,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
             course.category,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.textSubtitle,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.textSubtitle),
           ),
           const SizedBox(height: 8),
           Text(
             'Instructor: ${course.instructor}',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.textSubtitle,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.textSubtitle),
           ),
           const SizedBox(height: 12),
           Text(
@@ -414,27 +430,31 @@ class _ModuleListTileState extends State<_ModuleListTile> {
             Expanded(
               child: Text(
                 widget.module.title,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
             if (!hasAccess)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.grey.withOpacity(0.12),
+                  color: Colors.grey.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.lock_outline, size: 14, color: Colors.grey),
+                    const Icon(
+                      Icons.lock_outline,
+                      size: 14,
+                      color: Colors.grey,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       'Locked',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: Colors.grey,
-                          ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.labelSmall?.copyWith(color: Colors.grey),
                     ),
                   ],
                 ),
@@ -443,9 +463,9 @@ class _ModuleListTileState extends State<_ModuleListTile> {
         ),
         subtitle: Text(
           '${widget.module.lessons.length} lessons',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textSubtitle,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: AppColors.textSubtitle),
         ),
         children: [
           ...widget.module.lessons.map((lesson) {
@@ -459,7 +479,8 @@ class _ModuleListTileState extends State<_ModuleListTile> {
               enabled: hasAccess,
               onTap: hasAccess
                   ? () {
-                      final enrollmentId = widget.course.enrollmentId ?? 'local';
+                      final enrollmentId =
+                          widget.course.enrollmentId ?? 'local';
                       Navigator.of(context).push(
                         MaterialPageRoute<void>(
                           builder: (_) => CoursePlayerScreen(
@@ -473,7 +494,9 @@ class _ModuleListTileState extends State<_ModuleListTile> {
                   : () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('This content is locked. Purchase the course to access.'),
+                          content: Text(
+                            'This content is locked. Purchase the course to access.',
+                          ),
                         ),
                       );
                     },
@@ -511,7 +534,10 @@ class _SessionCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: _statusColor(session).withValues(alpha: 0.14),
                     borderRadius: BorderRadius.circular(6),
@@ -529,16 +555,16 @@ class _SessionCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Starts: ${_formatDateTime(session.startTime)}',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textSubtitle,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSubtitle),
             ),
             const SizedBox(height: 4),
             Text(
               'Ends: ${_formatDateTime(session.endTime)}',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textSubtitle,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSubtitle),
             ),
             const SizedBox(height: 12),
             SizedBox(
