@@ -22,6 +22,7 @@ enum AuthStatus {
   emailVerificationRequired,
   emailVerificationCodeSent,
   emailVerified,
+  sessionExpired,
 }
 
 class AuthState {
@@ -292,6 +293,10 @@ class AuthController extends Notifier<AuthState> {
   Future<void> signOut() async {
     await _repository.logout();
     state = const AuthState(status: AuthStatus.unauthenticated);
+  }
+
+  void markSessionExpired() {
+    state = state.copyWith(status: AuthStatus.sessionExpired);
   }
 
   Future<void> _restoreSessionStatus() async {

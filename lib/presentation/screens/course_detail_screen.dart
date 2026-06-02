@@ -113,7 +113,7 @@ class CourseDetailScreen extends ConsumerWidget {
                 ),
                 error: (error, stackTrace) => const SizedBox.shrink(),
                 data: (sessions) {
-                  if (course.isInstructorLed && sessions.isNotEmpty) {
+                  if (hasAccess && course.isInstructorLed && sessions.isNotEmpty) {
                     return Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
@@ -234,37 +234,50 @@ class _CourseActions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (hasAccess) {
-      return SizedBox(
-        width: double.infinity,
-        child: ElevatedButton.icon(
-          onPressed: () {
-            final content = ref.read(courseContentAsyncProvider(course.id)).value;
-            if (content != null && content.modules.isNotEmpty && content.modules.first.lessons.isNotEmpty) {
-              final lesson = content.modules.first.lessons.first;
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => CoursePlayerScreen(
-                    course: course,
-                    enrollmentId: course.enrollmentId ?? 'local',
-                    initialLesson: lesson,
-                  ),
-                ),
-              );
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Select a lesson below to resume learning.')),
-              );
-            }
-          },
-          icon: const Icon(Icons.play_circle_fill),
-          label: const Text('Continue Learning'),
-        ),
-      );
-    }
-
     return Column(
       children: [
+        if (hasAccess) ...[
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: null, // Disabled
+              icon: const Icon(Icons.check_circle),
+              label: const Text('Enrolled'),
+              style: ElevatedButton.styleFrom(
+                disabledBackgroundColor: Colors.grey.shade300,
+                disabledForegroundColor: Colors.grey.shade600,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                final content = ref.read(courseContentAsyncProvider(course.id)).value;
+                if (content != null && content.modules.isNotEmpty && content.modules.first.lessons.isNotEmpty) {
+                  final lesson = content.modules.first.lessons.first;
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => CoursePlayerScreen(
+                        course: course,
+                        enrollmentId: course.enrollmentId ?? 'local',
+                        initialLesson: lesson,
+                      ),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Select a lesson below to resume learning.')),
+                  );
+                }
+              },
+              icon: const Icon(Icons.play_circle_fill),
+              label: const Text('Continue Learning'),
+            ),
+          ),
+        ],
+        if (!hasAccess) ...[
         if (!course.isFree) ...[
           SizedBox(
             width: double.infinity,

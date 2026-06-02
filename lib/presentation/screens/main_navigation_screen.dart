@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../providers/auth_controller.dart';
 import '../providers/notification_provider.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/offline_banner.dart';
@@ -39,6 +40,28 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AuthState>(authControllerProvider, (previous, next) {
+      if (next.status == AuthStatus.sessionExpired) {
+        showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Text('Session Expired'),
+            content: const Text('Your session has expired. Please sign in again.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  ref.read(authControllerProvider.notifier).signOut();
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    });
+
     final isAmharic = ref.watch(settingsProvider).language == 'am';
 
     return Scaffold(

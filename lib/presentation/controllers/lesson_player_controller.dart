@@ -5,6 +5,8 @@ import '../../domain/entities/course_content.dart';
 import '../../domain/entities/course_session.dart';
 import '../widgets/html_content_widget.dart';
 import '../widgets/youtube_player_widget.dart';
+import '../widgets/custom_video_player.dart';
+import '../widgets/authenticated_image.dart';
 
 abstract class LessonPlayerController {
   Widget buildPlayer(BuildContext context);
@@ -151,22 +153,28 @@ class SequentialLessonController implements LessonPlayerController {
             Text(material.description, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
           ],
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.video_library),
-              title: Text(material.description.isEmpty ? 'Video Content' : material.description),
-              subtitle: const Text('Tap to view video in native player'),
-              onTap: () async {
-                 final accessUrl = await resolveMaterialAccessUrl(material.id);
-                 if (accessUrl != null && accessUrl.isNotEmpty) {
-                    final uri = Uri.parse(accessUrl);
-                    if (await canLaunchUrl(uri)) {
-                      await launchUrl(uri, mode: LaunchMode.externalApplication);
-                    }
-                 }
-              },
-            )
-          )
+          FutureBuilder<String?>(
+            future: resolveMaterialAccessUrl(material.id),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: Padding(
+                  padding: EdgeInsets.all(24.0),
+                  child: CircularProgressIndicator(),
+                ));
+              }
+              if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Center(child: Padding(
+                  padding: EdgeInsets.all(24.0),
+                  child: Text('Failed to load video URL.'),
+                ));
+              }
+              return CustomVideoPlayerWidget(
+                videoUrl: snapshot.data!,
+                initialPositionSeconds: initialVideoPositionSeconds,
+                onPositionChanged: onPositionChanged,
+              );
+            },
+          ),
         ],
       );
     }
@@ -226,10 +234,9 @@ class SequentialLessonController implements LessonPlayerController {
                       panEnabled: true,
                       minScale: 0.5,
                       maxScale: 4,
-                      child: Image.network(
-                        material.fullContentUrl,
+                      child: AuthenticatedImage(
+                        imageUrl: material.fullContentUrl,
                         fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.error, color: Colors.white)),
                       ),
                     ),
                     Positioned(
@@ -247,16 +254,10 @@ class SequentialLessonController implements LessonPlayerController {
           },
           child: ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              material.fullContentUrl,
+            child: AuthenticatedImage(
+              imageUrl: material.fullContentUrl,
               fit: BoxFit.cover,
               width: double.infinity,
-              errorBuilder: (_, __, ___) => Container(
-                width: double.infinity,
-                height: 200,
-                color: Colors.grey[300],
-                child: const Icon(Icons.broken_image, size: 50, color: Colors.grey),
-              ),
             ),
           ),
         ),

@@ -54,7 +54,12 @@ final tokenStorageProvider = Provider<TokenStorage>((ref) {
 });
 
 final dioProvider = Provider<Dio>((ref) {
-  return DioClient.create(tokenStorage: ref.watch(tokenStorageProvider));
+  return DioClient.create(
+    tokenStorage: ref.watch(tokenStorageProvider),
+    onSessionExpired: () {
+      ref.read(authControllerProvider.notifier).markSessionExpired();
+    },
+  );
 });
 
 final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>((ref) {

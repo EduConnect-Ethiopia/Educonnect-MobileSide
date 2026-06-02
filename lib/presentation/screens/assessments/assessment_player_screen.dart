@@ -74,7 +74,7 @@ class _AssessmentPlayerScreenState
       _remainingSeconds = assessment.durationMinutes * 60;
       _loading = false;
       _loadError = assessment.questions.isEmpty
-          ? 'This assessment has no questions yet.'
+          ? 'This assessment is currently empty.'
           : null;
     });
 
@@ -232,26 +232,28 @@ class _AssessmentPlayerScreenState
     }
 
     if (_loadError != null) {
+      final isEmpty = _loadError == 'This assessment is currently empty.';
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 48),
+              Icon(isEmpty ? Icons.inbox_outlined : Icons.error_outline, size: 48),
               const SizedBox(height: 16),
               Text(_loadError!, textAlign: TextAlign.center),
               const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    _loading = true;
-                    _loadError = null;
-                  });
-                  _bootstrap();
-                },
-                child: const Text('Retry'),
-              ),
+              if (!isEmpty)
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _loading = true;
+                      _loadError = null;
+                    });
+                    _bootstrap();
+                  },
+                  child: const Text('Retry'),
+                ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
                 child: const Text('Go back'),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../domain/entities/course.dart';
+import 'authenticated_image.dart';
 
 class CourseCard extends StatelessWidget {
   const CourseCard({
@@ -134,14 +135,9 @@ class _CourseThumbnail extends StatelessWidget {
               size: 40,
               color: AppColors.primary,
             )
-          : CachedNetworkImage(
+          : AuthenticatedImage(
               imageUrl: thumbnailUrl,
               fit: BoxFit.cover,
-              errorWidget: (_, _, _) => const Icon(
-                Icons.school_outlined,
-                size: 40,
-                color: AppColors.primary,
-              ),
             ),
     );
   }
@@ -154,6 +150,23 @@ class _PriceBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (course.enrollmentId != null) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          'Enrolled',
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: Colors.grey.shade700,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      );
+    }
+
     if (course.isFree) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),

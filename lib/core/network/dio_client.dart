@@ -8,7 +8,10 @@ import 'jwt_auth_interceptor.dart';
 class DioClient {
   DioClient._();
 
-  static Dio create({required TokenStorage tokenStorage}) {
+  static Dio create({
+    required TokenStorage tokenStorage,
+    required VoidCallback onSessionExpired,
+  }) {
     final apiBaseUrl = AppEnvironment.apiBaseUrl;
     
     if (kDebugMode) {
@@ -34,7 +37,11 @@ class DioClient {
     final dio = Dio(baseOptions);
 
     // Add JWT auth interceptor
-    dio.interceptors.add(JwtAuthInterceptor(tokenStorage: tokenStorage));
+    final interceptor = JwtAuthInterceptor(
+      tokenStorage: tokenStorage,
+      onSessionExpired: onSessionExpired,
+    );
+    dio.interceptors.add(interceptor);
 
     // Add logging interceptor in dev mode for debugging
     if (AppEnvironment.isDev) {

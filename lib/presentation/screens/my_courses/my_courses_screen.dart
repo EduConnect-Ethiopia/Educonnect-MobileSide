@@ -23,7 +23,7 @@ class _MyCoursesScreenState extends ConsumerState<MyCoursesScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() => setState(() {}));
   }
 
@@ -50,7 +50,6 @@ class _MyCoursesScreenState extends ConsumerState<MyCoursesScreen>
             Tab(text: 'All'),
             Tab(text: 'In Progress'),
             Tab(text: 'Completed'),
-            Tab(text: 'Dropped'),
           ],
         ),
         actions: [
@@ -137,8 +136,6 @@ class _MyCoursesScreenState extends ConsumerState<MyCoursesScreen>
                   c.isEnrollmentCompleted || c.progress >= 100,
             )
             .toList();
-      case 3:
-        return courses.where((c) => c.isEnrollmentDropped).toList();
       default:
         return courses;
     }

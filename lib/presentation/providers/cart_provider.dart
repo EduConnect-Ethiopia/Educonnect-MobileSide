@@ -92,7 +92,12 @@ class CartController extends Notifier<CartState> {
         if (paid) {
           successfulCourseIds.add(item.courseId);
         } else {
-          hasFailure = true;
+          final status = await paymentRepo.checkPaymentStatus(intent.transactionId);
+          if (status) {
+            successfulCourseIds.add(item.courseId);
+          } else {
+            hasFailure = true;
+          }
         }
       } catch (e) {
         hasFailure = true;

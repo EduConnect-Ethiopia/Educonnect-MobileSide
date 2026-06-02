@@ -5,10 +5,14 @@ import '../constants/api_endpoints.dart';
 import '../storage/token_storage.dart';
 
 class JwtAuthInterceptor extends QueuedInterceptor {
-  JwtAuthInterceptor({required TokenStorage tokenStorage})
-    : _tokenStorage = tokenStorage;
+  JwtAuthInterceptor({
+    required TokenStorage tokenStorage,
+    required VoidCallback onSessionExpired,
+  })  : _tokenStorage = tokenStorage,
+        _onSessionExpired = onSessionExpired;
 
   final TokenStorage _tokenStorage;
+  final VoidCallback _onSessionExpired;
 
   @override
   Future<void> onRequest(
@@ -45,8 +49,8 @@ class JwtAuthInterceptor extends QueuedInterceptor {
 
     if (statusCode == 401 && !_isAuthEndpoint(path)) {
       if (kDebugMode) print('[JwtAuthInterceptor] ❌ 401 Unauthorized for: $path');
-      if (kDebugMode) print('[JwtAuthInterceptor] 🔐 Clearing token storage due to 401 error');
-      await _tokenStorage.clear();
+      if (kDebugMode) print('[JwtAuthInterceptor] 🔐 Triggering session expiration callback');
+      _onSessionExpired();
     } else if (err.type == DioExceptionType.connectionTimeout) {
       if (kDebugMode) print('[JwtAuthInterceptor] ⏱️  Connection timeout: $path');
     } else if (err.type == DioExceptionType.receiveTimeout) {
