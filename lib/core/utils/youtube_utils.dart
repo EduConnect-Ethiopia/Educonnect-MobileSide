@@ -6,9 +6,6 @@ class YouTubeUtils {
     if (trimmed.isEmpty) return null;
     if (_looksLikeVideoId(trimmed)) return trimmed;
 
-    // A comprehensive regex to find the 11 character YouTube ID.
-    // Matches standard watch links, youtu.be shortlinks, shorts, live, embed, and v/ links.
-    // It also safely ignores surrounding text, e.g. if the user pasted an iframe embed code.
     final regExp = RegExp(
       r'(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|shorts\/|live\/|watch\?[^>]*v=))([a-zA-Z0-9_-]{11})',
       caseSensitive: false,
