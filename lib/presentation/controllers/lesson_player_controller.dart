@@ -73,7 +73,7 @@ class SequentialLessonController implements LessonPlayerController {
     required this.resolveMaterialAccessUrl,
     required this.onOpenFile,
     required this.onComplete,
-    this.initialVideoPositionSeconds = 0,
+    this.getInitialPosition,
     this.onPositionChanged,
   }) {
     sortedMaterials = List<Material>.from(lesson.materials)
@@ -84,8 +84,8 @@ class SequentialLessonController implements LessonPlayerController {
   final MaterialAccessResolver resolveMaterialAccessUrl;
   final Future<void> Function(String materialId) onOpenFile;
   final VoidCallback onComplete;
-  final int initialVideoPositionSeconds;
-  final void Function(int positionSeconds)? onPositionChanged;
+  final int Function(String materialId)? getInitialPosition;
+  final void Function(String materialId, int positionSeconds)? onPositionChanged;
   late final List<Material> sortedMaterials;
 
   @override
@@ -137,8 +137,8 @@ class SequentialLessonController implements LessonPlayerController {
           YouTubePlayerWidget(
             videoUrl: material.fullContentUrl,
             title: material.description,
-            initialPositionSeconds: initialVideoPositionSeconds,
-            onPositionChanged: onPositionChanged,
+            initialPositionSeconds: getInitialPosition?.call(material.id) ?? 0,
+            onPositionChanged: (pos) => onPositionChanged?.call(material.id, pos),
             onVideoComplete: () {}, 
           ),
         ],
@@ -170,8 +170,8 @@ class SequentialLessonController implements LessonPlayerController {
               }
               return CustomVideoPlayerWidget(
                 videoUrl: snapshot.data!,
-                initialPositionSeconds: initialVideoPositionSeconds,
-                onPositionChanged: onPositionChanged,
+                initialPositionSeconds: getInitialPosition?.call(material.id) ?? 0,
+                onPositionChanged: (pos) => onPositionChanged?.call(material.id, pos),
               );
             },
           ),
@@ -275,8 +275,8 @@ class LessonPlayerControllerFactory {
     required VoidCallback onComplete,
     required MaterialAccessResolver resolveMaterialAccessUrl,
     CourseSession? liveSession,
-    int initialVideoPosition = 0,
-    void Function(int positionSeconds)? onPositionChanged,
+    int Function(String materialId)? getInitialPosition,
+    void Function(String materialId, int positionSeconds)? onPositionChanged,
     required Future<void> Function(String materialId) onOpenFile,
   }) {
     if (liveSession != null) {
@@ -288,7 +288,7 @@ class LessonPlayerControllerFactory {
       resolveMaterialAccessUrl: resolveMaterialAccessUrl,
       onOpenFile: onOpenFile,
       onComplete: onComplete,
-      initialVideoPositionSeconds: initialVideoPosition,
+      getInitialPosition: getInitialPosition,
       onPositionChanged: onPositionChanged,
     );
   }

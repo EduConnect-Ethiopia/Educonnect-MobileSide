@@ -92,7 +92,13 @@ class _QuestionWidgetState extends State<QuestionWidget> {
   }
 
   Widget _buildMultipleChoice() {
-    final groupValue = widget.initialAnswer as int?;
+    final answerText = widget.initialAnswer as String?;
+    int? groupValue;
+    if (answerText != null && answerText.isNotEmpty) {
+      groupValue = widget.question.options.indexOf(answerText);
+      if (groupValue == -1) groupValue = null;
+    }
+
     if (widget.question.options.isEmpty) {
       return const Text('No answer choices are available for this question.');
     }
@@ -111,7 +117,16 @@ class _QuestionWidgetState extends State<QuestionWidget> {
   }
 
   Widget _buildMultipleSelect() {
-    final selected = (widget.initialAnswer as List<int>?) ?? <int>[];
+    final answerText = widget.initialAnswer as String?;
+    final List<int> selected = [];
+    if (answerText != null && answerText.isNotEmpty) {
+      final parts = answerText.split('|');
+      for (final part in parts) {
+        final idx = widget.question.options.indexOf(part);
+        if (idx != -1) selected.add(idx);
+      }
+    }
+
     return Column(
       children: List.generate(widget.question.options.length, (index) {
         return CheckboxListTile(

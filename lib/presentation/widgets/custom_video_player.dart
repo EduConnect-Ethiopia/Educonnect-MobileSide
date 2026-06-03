@@ -74,7 +74,11 @@ class _CustomVideoPlayerWidgetState
       }
 
       if (widget.initialPositionSeconds > 0) {
-        await vpc.seekTo(Duration(seconds: widget.initialPositionSeconds));
+        final duration = vpc.value.duration;
+        final target = Duration(seconds: widget.initialPositionSeconds);
+        if (duration > Duration.zero && target < duration - const Duration(seconds: 1)) {
+          await vpc.seekTo(target);
+        }
       }
 
       vpc.addListener(_onVideoProgress);
@@ -89,7 +93,7 @@ class _CustomVideoPlayerWidgetState
         showOptions: true,
         hideControlsTimer: const Duration(seconds: 3),
         // Ensures controls are shown on first render
-        autoInitialize: true,
+        autoInitialize: false,
         placeholder: Container(color: Colors.black),
         errorBuilder: (context, errorMessage) => Center(
           child: Padding(

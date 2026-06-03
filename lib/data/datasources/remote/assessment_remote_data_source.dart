@@ -1,6 +1,4 @@
 import 'package:dio/dio.dart';
-import 'dart:io';
-
 import '../../../core/constants/api_endpoints.dart';
 import '../../../core/utils/json_map.dart';
 import '../../models/assessment_models.dart';
@@ -60,7 +58,7 @@ class DioAssessmentRemoteDataSource implements AssessmentRemoteDataSource {
 
   @override
   Future<void> startAssessment(String assessmentId) async {
-    await _dio.post<dynamic>(ApiEndpoints.startAssessment(assessmentId));
+    await _dio.post<dynamic>(ApiEndpoints.startAssessment(assessmentId), data: {});
   }
 
   @override
@@ -114,6 +112,9 @@ class DioAssessmentRemoteDataSource implements AssessmentRemoteDataSource {
     final normalized = status.toLowerCase();
     return normalized.isEmpty ||
         normalized.contains('published') ||
+        normalized.contains('active') ||
+        normalized.contains('open') ||
+        normalized.contains('scheduled') ||
         normalized == '1';
   }
 

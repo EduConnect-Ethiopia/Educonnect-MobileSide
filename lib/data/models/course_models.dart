@@ -274,13 +274,27 @@ class MaterialModel {
 
   factory MaterialModel.fromJson(JsonMap json) {
     final data = findMap(json, const ['data', 'result']) ?? json;
+    final materialType = _readMaterialType(data);
+    final rawContentUrl = findString(
+      data,
+      const [
+        'contentUrl',
+        'url',
+        'filePath',
+        'link',
+        'resourceUrl',
+        'videoUrl',
+        'youtubeUrl',
+        'externalUrl',
+      ],
+    );
     return MaterialModel(
       materialId: findString(data, const ['materialId', 'id']) ?? '',
       lessonId: findString(data, const ['lessonId']) ?? '',
-      materialType: _readInt(data['materialType']) ?? 0,
-      description: findString(data, const ['description']) ?? '',
-      textContent: findString(data, const ['textContent', 'content']),
-      contentUrl: findString(data, const ['contentUrl', 'url', 'filePath']),
+      materialType: materialType,
+      description: findString(data, const ['description', 'title', 'name']) ?? '',
+      textContent: findString(data, const ['textContent', 'content', 'body', 'html']),
+      contentUrl: _normalizeContentUrl(rawContentUrl, materialType),
       orderIndex: _readInt(data['orderIndex']) ?? 0,
       materialStatus: _readInt(data['materialStatus']) ?? 0,
       createdAt: parseDateTime(data['createdAt']),
@@ -395,4 +409,84 @@ double? _readDouble(Object? value) {
   if (value is num) return value.toDouble();
   if (value is String) return double.tryParse(value);
   return null;
+}
+
+int _readMaterialType(JsonMap data) {
+  final raw = readJsonValue(data, const [
+    'materialType',
+    'materialTypeId',
+    'materialTypeName',
+    'type',
+    'typeId',
+    'contentType',
+  ]);
+  if (raw is num) return raw.toInt();
+  if (raw is String) {
+    final normalized = raw.trim().toLowerCase();
+    final parsed = int.tryParse(normalized);
+    if (parsed != null) return parsed;
+    if (normalized.contains('youtube')) return 5;
+    if (normalized.contains('video')) return 4;
+    if (normalized.contains('external') || normalized.contains('link')) return 3;
+    if (normalized.contains('image') || normalized.contains('photo')) return 2;
+    if (normalized.contains('file') ||
+        normalized.contains('document') ||
+        normalized.contains('pdf') ||
+        normalized.contains('attachment')) {
+      return 1;
+    }
+    if (normalized.contains('article') ||
+        normalized.contains('text') ||
+        normalized.contains('html')) {
+      return 0;
+    }
+  }
+  return _readInt(raw) ?? 0;
+}
+
+String? _normalizeContentUrl(String? raw, int materialType) {
+  if (raw == null) return null;
+  final trimmed = raw.trim();
+  if (trimmed.isEmpty) return null;
+
+  final uri = Uri.tryParse(trimmed);
+  if (uri != null && uri.hasScheme) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith('www.')) {
+    return 'https://$trimmed';
+  }
+
+  if (trimmed.contains('youtube.com') || trimmed.contains('youtu.be')) {
+    return 'https://$trimmed';
+  }
+
+  if (materialType == 5 && _looksLikeYouTubeId(trimmed)) {
+    return trimmed;
+  }
+
+  if (materialType == 3 && _looksLikeHost(trimmed)) {
+    return 'https://$trimmed';
+  }
+
+  final base = AppEnvironment.apiBaseUrl;
+  final normalizedBase = base.endsWith('/')
+      ? base.substring(0, base.length - 1)
+      : base;
+  if (trimmed.startsWith('/')) {
+    return '$normalizedBase$trimmed';
+  }
+  return '$normalizedBase/$trimmed';
+}
+
+bool _looksLikeYouTubeId(String value) {
+  return RegExp(r'^[a-zA-Z0-9_-]{11}$').hasMatch(value.trim());
+}
+
+bool _looksLikeHost(String value) {
+  final trimmed = value.trim();
+  if (trimmed.contains(' ')) return false;
+  if (trimmed.startsWith('/')) return false;
+  return trimmed.contains('.') && !trimmed.contains('..');
 }

@@ -36,7 +36,7 @@ class _CoursePlayerScreenState extends ConsumerState<CoursePlayerScreen> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   late Lesson _currentLesson;
   LessonPlayerController? _playerController;
-  int _videoPosition = 0;
+  Map<String, int> _videoPositions = {};
 
   @override
   void initState() {
@@ -47,7 +47,18 @@ class _CoursePlayerScreenState extends ConsumerState<CoursePlayerScreen> {
 
   Future<void> _loadProgressAndPlayer() async {
     final progressRepo = ref.read(progressRepositoryProvider);
-    _videoPosition = await progressRepo.getVideoPosition(_currentLesson.id);
+    final positions = <String, int>{};
+    
+    // Also fetch the legacy lesson position in case they are upgrading
+    positions[_currentLesson.id] = await progressRepo.getVideoPosition(_currentLesson.id);
+
+    for (final material in _currentLesson.materials) {
+      if (material.isVideo || material.isYouTubeVideo) {
+        positions[material.id] = await progressRepo.getVideoPosition(material.id);
+      }
+    }
+    
+    _videoPositions = positions;
 
     final content = await ref.read(
       courseContentAsyncProvider(widget.course.id).future,
@@ -84,12 +95,13 @@ class _CoursePlayerScreenState extends ConsumerState<CoursePlayerScreen> {
           }
         },
         liveSession: widget.liveSession,
-        initialVideoPosition: _videoPosition,
-        onPositionChanged: (pos) {
+        getInitialPosition: (materialId) => _videoPositions[materialId] ?? _videoPositions[_currentLesson.id] ?? 0,
+        onPositionChanged: (materialId, pos) {
           ref.read(progressRepositoryProvider).saveVideoPosition(
-                _currentLesson.id,
+                materialId,
                 pos,
               );
+          _videoPositions[materialId] = pos;
         },
         onOpenFile: (materialId) async {
           try {

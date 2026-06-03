@@ -68,10 +68,23 @@ List<JsonMap> unwrapJsonList(Object? value) {
 
   if (value is Map) {
     final map = castJsonMap(value);
-    for (final key in const ['data', 'items', 'results']) {
+    for (final key in const [
+      'data',
+      'items',
+      'results',
+      'assessments',
+      'materials',
+      'lessons',
+      'modules',
+      'questions',
+    ]) {
       final nested = map[key];
       if (nested is List) {
         return unwrapJsonList(nested);
+      }
+      if (nested is Map) {
+        final inner = unwrapJsonList(nested);
+        if (inner.isNotEmpty) return inner;
       }
     }
   }
