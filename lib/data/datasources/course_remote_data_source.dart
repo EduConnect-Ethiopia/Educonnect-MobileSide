@@ -75,7 +75,7 @@ class DioCourseRemoteDataSource implements CourseRemoteDataSource {
 
   @override
   Future<String> getMaterialAccessUrl(String materialId) async {
-    final response = await _dio.get<dynamic>(ApiEndpoints.materialAccess(materialId));
+    final response = await _dio.post<dynamic>(ApiEndpoints.materialAccess(materialId));
     final data = _unwrapApiData(response.data);
     if (data is String) return data;
     if (data is Map) {
@@ -91,8 +91,11 @@ class DioCourseRemoteDataSource implements CourseRemoteDataSource {
     try {
       final response = await _dio.get<dynamic>(ApiEndpoints.courseContent(courseId));
       final data = _unwrapApiData(response.data);
-      if (data is Map<String, dynamic>) {
-        final model = CourseContentModel.fromJson(castJsonMap(data));
+      if (data is Map) {
+        var model = CourseContentModel.fromJson(castJsonMap(data));
+        if (model.modules.isNotEmpty && !_hasAnyMaterials(model)) {
+          model = await _hydrateMaterials(model);
+        }
         if (model.modules.isNotEmpty) return model;
       }
     } on DioException catch (error) {
@@ -138,8 +141,40 @@ class DioCourseRemoteDataSource implements CourseRemoteDataSource {
   Future<List<MaterialModel>> getLessonMaterials(String lessonId) async {
     final response = await _dio.get<dynamic>(ApiEndpoints.lessonMaterials(lessonId));
     final data = _unwrapApiData(response.data);
-    if (data is! List) return const [];
-    return data.whereType<Map<String, dynamic>>().map(MaterialModel.fromJson).toList();
+    final items = unwrapJsonList(data);
+    if (items.isEmpty) return const [];
+    return items.map(MaterialModel.fromJson).toList();
+  }
+
+  bool _hasAnyMaterials(CourseContentModel model) {
+    for (final module in model.modules) {
+      for (final lesson in module.lessons) {
+        if (lesson.materials.isNotEmpty) return true;
+      }
+    }
+    return false;
+  }
+
+  Future<CourseContentModel> _hydrateMaterials(CourseContentModel model) async {
+    final modules = await Future.wait(
+      model.modules.map((module) async {
+        if (module.lessons.isEmpty) return module;
+        final lessons = await Future.wait(
+          module.lessons.map((lesson) async {
+            if (lesson.materials.isNotEmpty) return lesson;
+            try {
+              final materials = await getLessonMaterials(lesson.lessonId);
+              return lesson.copyWith(materials: materials);
+            } on Object {
+              return lesson;
+            }
+          }),
+        );
+        return module.copyWith(lessons: lessons);
+      }),
+    );
+
+    return CourseContentModel.fromStructure(course: model.course, modules: modules);
   }
 
   @override

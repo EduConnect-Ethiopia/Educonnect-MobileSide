@@ -35,6 +35,7 @@ class _AssessmentPlayerScreenState
   bool _loading = true;
   String? _loadError;
   bool _submitting = false;
+  bool _canPop = false;
 
   Assessment get _activeAssessment => _assessment ?? widget.assessment;
 
@@ -167,6 +168,7 @@ class _AssessmentPlayerScreenState
       }
 
       if (!mounted) return;
+      setState(() => _canPop = true);
       Navigator.pushReplacement(
         context,
         MaterialPageRoute<void>(
@@ -202,14 +204,61 @@ class _AssessmentPlayerScreenState
     final minutes = _remainingSeconds ~/ 60;
     final seconds = (_remainingSeconds % 60).toString().padLeft(2, '0');
     final controller = _controller;
+    final hasQuestions = _activeAssessment.questions.isNotEmpty;
 
     return PopScope(
-      canPop: false,
+      canPop: _canPop,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+        if (_loadError != null || _loading || !hasQuestions) {
+          setState(() => _canPop = true);
+          Future.delayed(Duration.zero, () {
+            if (mounted) Navigator.pop(context);
+          });
+          return;
+        }
+        final confirm = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Exit assessment?'),
+            content: const Text('Your progress will be saved, but the timer will continue running on the server.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Exit'),
+              ),
+            ],
+          ),
+        );
+        if (confirm == true && mounted) {
+          setState(() => _canPop = true);
+          Future.delayed(Duration.zero, () {
+            if (mounted) Navigator.pop(context);
+          });
+        }
+      },
       child: Scaffold(
         appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () {
+              if (_loading || _loadError != null || !hasQuestions) {
+                setState(() => _canPop = true);
+                Future.delayed(Duration.zero, () {
+                  if (mounted) Navigator.of(context).pop();
+                });
+                return;
+              }
+              Navigator.maybePop(context);
+            },
+          ),
           title: Text(_activeAssessment.title),
           actions: [
-            if (!_loading && _loadError == null)
+            if (!_loading && _loadError == null && hasQuestions)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Center(
@@ -255,7 +304,12 @@ class _AssessmentPlayerScreenState
                   child: const Text('Retry'),
                 ),
               TextButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () {
+                  setState(() => _canPop = true);
+                  Future.delayed(Duration.zero, () {
+                    if (mounted) Navigator.of(context).pop();
+                  });
+                },
                 child: const Text('Go back'),
               ),
             ],
@@ -269,6 +323,9 @@ class _AssessmentPlayerScreenState
     }
 
     final questions = _activeAssessment.questions;
+    if (questions.isEmpty) {
+      return _buildEmptyAssessment('No questions are available for this assessment.');
+    }
 
     return Column(
       children: [
@@ -288,6 +345,32 @@ class _AssessmentPlayerScreenState
         ),
         _buildNavigationButtons(controller),
       ],
+    );
+  }
+
+  Widget _buildEmptyAssessment(String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.inbox_outlined, size: 48),
+            const SizedBox(height: 16),
+            Text(message, textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () {
+                setState(() => _canPop = true);
+                Future.delayed(Duration.zero, () {
+                  if (mounted) Navigator.of(context).pop();
+                });
+              },
+              child: const Text('Go back'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

@@ -66,10 +66,14 @@ class AssessmentSummaryDto {
 }
 
 String _readAssessmentType(JsonMap data) {
-  final value = readJsonValue(data, const ['assessmentType', 'type']);
-  if (value is String && value.isNotEmpty) return value;
-  if (value is int) {
-    switch (value) {
+  final value = readJsonValue(
+    data,
+    const ['assessmentType', 'assessmentTypeId', 'type', 'typeId'],
+  );
+  if (value is String && value.trim().isNotEmpty) return value.trim();
+  if (value is int || value is num) {
+    final asInt = value is num ? value.toInt() : value as int;
+    switch (asInt) {
       case 0:
         return 'Quiz';
       case 1:
@@ -82,14 +86,20 @@ String _readAssessmentType(JsonMap data) {
 }
 
 String _readStatus(JsonMap data) {
-  final value = readJsonValue(data, const ['assessmentStatus', 'status']);
-  if (value is String && value.isNotEmpty) return value;
-  if (value is int) {
-    switch (value) {
+  final value = readJsonValue(
+    data,
+    const ['assessmentStatus', 'assessmentStatusId', 'status'],
+  );
+  if (value is String && value.trim().isNotEmpty) return value.trim();
+  if (value is int || value is num) {
+    final asInt = value is num ? value.toInt() : value as int;
+    switch (asInt) {
       case 1:
         return 'Published';
       case 2:
         return 'Closed';
+      case 3:
+        return 'Archived';
       default:
         return 'Draft';
     }
@@ -98,10 +108,14 @@ String _readStatus(JsonMap data) {
 }
 
 String _readQuestionType(JsonMap data) {
-  final value = readJsonValue(data, const ['questionType', 'type']);
-  if (value is String && value.isNotEmpty) return value;
-  if (value is int) {
-    switch (value) {
+  final value = readJsonValue(
+    data,
+    const ['questionType', 'questionTypeId', 'type', 'typeId'],
+  );
+  if (value is String && value.trim().isNotEmpty) return value.trim();
+  if (value is int || value is num) {
+    final asInt = value is num ? value.toInt() : value as int;
+    switch (asInt) {
       case 0:
         return 'MultipleChoice';
       case 1:
@@ -151,7 +165,10 @@ class AssessmentQuestionDto {
       text: findString(data, const ['text']) ?? '',
       questionType: _readQuestionType(data),
       options: _parseOptions(
-        readJsonValue(data, const ['optionsJson', 'options']),
+        readJsonValue(
+          data,
+          const ['optionsJson', 'options', 'choices', 'answerOptions'],
+        ),
       ),
       points: _readInt(readJsonValue(data, const ['points'])) ?? 1,
       orderIndex: _readInt(readJsonValue(data, const ['orderIndex'])) ?? 0,
@@ -174,13 +191,35 @@ class AssessmentQuestionDto {
       return raw.map((e) => e.toString()).toList();
     }
     if (raw is String && raw.isNotEmpty) {
+      final trimmed = raw.trim();
       try {
-        final decoded = jsonDecode(raw);
+        final decoded = jsonDecode(trimmed);
         if (decoded is List) {
           return decoded.map((e) => e.toString()).toList();
         }
       } on Object {
-        return const [];
+        if (trimmed.contains('|')) {
+          return trimmed
+              .split('|')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
+        }
+        if (trimmed.contains(',')) {
+          return trimmed
+              .split(',')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
+        }
+        if (trimmed.contains(';')) {
+          return trimmed
+              .split(';')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
+        }
+        return trimmed.isEmpty ? const [] : [trimmed];
       }
     }
     return const [];
@@ -190,10 +229,16 @@ class AssessmentQuestionDto {
     String backendType,
     List<String> options,
   ) {
-    switch (backendType.toLowerCase()) {
+    final normalized = backendType
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]'), '');
+    switch (normalized) {
       case 'multiplechoice':
+      case 'mcq':
         return QuestionType.multipleChoice;
       case 'shortanswer':
+      case 'essay':
+      case 'longanswer':
         return QuestionType.essay;
       case 'truefalse':
         return QuestionType.trueFalse;
