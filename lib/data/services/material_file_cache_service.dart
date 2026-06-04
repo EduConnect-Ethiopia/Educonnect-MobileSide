@@ -49,7 +49,18 @@ class MaterialFileCacheService {
     final filePath =
         '${materialsDirectory.path}${Platform.pathSeparator}$materialId$extension';
 
-    await _dio.download(accessUrl, filePath);
+    try {
+      await _dio.download(accessUrl, filePath);
+    } catch (e) {
+      // If download fails, ensure we don't leave a partial file and provide a clear error
+      final partial = File(filePath);
+      if (await partial.exists()) {
+        try {
+          await partial.delete();
+        } catch (_) {}
+      }
+      rethrow;
+    }
     await _cache.saveMaterialFilePath(materialId, filePath);
     return File(filePath);
   }

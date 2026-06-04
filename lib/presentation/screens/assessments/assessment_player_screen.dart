@@ -82,7 +82,18 @@ class _AssessmentPlayerScreenState
     if (assessment.questions.isEmpty) return;
 
     try {
-      await controller.ensureStarted();
+      final startedAt = await controller.ensureStarted();
+      if (startedAt != null && assessment.durationMinutes > 0) {
+        final total = assessment.durationMinutes * 60;
+        final elapsed = DateTime.now().toUtc().difference(startedAt.toUtc()).inSeconds;
+        final remaining = total - elapsed;
+        if (remaining <= 0) {
+          // time already elapsed on server - force submit
+          await _submitAssessment(force: true);
+          return;
+        }
+        if (mounted) setState(() => _remainingSeconds = remaining);
+      }
     } on Object catch (error) {
       if (!mounted) return;
       setState(() => _loadError = error.toString());

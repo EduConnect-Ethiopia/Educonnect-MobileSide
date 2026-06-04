@@ -39,7 +39,7 @@ class AssessmentRepositoryImpl implements AssessmentRepository {
   }
 
   @override
-  Future<void> startAssessment(String assessmentId) {
+  Future<DateTime?> startAssessment(String assessmentId) {
     return _remote.startAssessment(assessmentId);
   }
 

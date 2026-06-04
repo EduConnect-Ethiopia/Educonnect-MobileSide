@@ -19,4 +19,16 @@ void main() {
 
     expect(YouTubeUtils.extractVideoId(url), 'w9xKj5PsCnI');
   });
+
+  test('extractVideoId handles youtube watch URLs with extra parameters', () {
+    const url = 'https://www.youtube.com/watch?v=w9xKj5PsCnI&t=12s&feature=share';
+
+    expect(YouTubeUtils.extractVideoId(url), 'w9xKj5PsCnI');
+  });
+
+  test('extractVideoId handles raw 11-character video IDs', () {
+    const url = 'w9xKj5PsCnI';
+
+    expect(YouTubeUtils.extractVideoId(url), 'w9xKj5PsCnI');
+  });
 }

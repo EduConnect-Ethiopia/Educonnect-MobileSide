@@ -25,8 +25,9 @@ class _FakeAssessmentRemote implements AssessmentRemoteDataSource {
   }
 
   @override
-  Future<void> startAssessment(String assessmentId) async {
+  Future<DateTime?> startAssessment(String assessmentId) async {
     started.add(assessmentId);
+    return DateTime.now().toUtc();
   }
 
   @override

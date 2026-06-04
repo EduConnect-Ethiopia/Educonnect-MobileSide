@@ -104,8 +104,8 @@ class _CustomVideoPlayerWidgetState
         showControls: true,
         showOptions: true,
         hideControlsTimer: const Duration(seconds: 3),
-        // Ensures controls are shown on first render
-        autoInitialize: false,
+        // Auto-initialize Chewie from an already-initialized VideoPlayerController
+        autoInitialize: true,
         placeholder: Container(color: Colors.black),
         errorBuilder: (context, errorMessage) => Center(
           child: Padding(

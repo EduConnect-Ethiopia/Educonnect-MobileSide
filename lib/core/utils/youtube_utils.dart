@@ -4,41 +4,38 @@ class YouTubeUtils {
   static String? extractVideoId(String url) {
     final trimmed = url.trim();
     if (trimmed.isEmpty) return null;
-    if (_looksLikeVideoId(trimmed)) return trimmed;
+
+    final directId = _extractDirectVideoId(trimmed);
+    if (directId != null) return directId;
 
     final uri = Uri.tryParse(trimmed);
     if (uri != null) {
-      if (uri.host.contains('youtu.be')) {
+      final host = uri.host.toLowerCase();
+
+      if (host.contains('youtu.be')) {
         final pathSegments = uri.pathSegments;
-        if (pathSegments.isNotEmpty) {
-          final videoId = pathSegments.first;
-          if (_looksLikeVideoId(videoId)) return videoId;
+        for (final segment in pathSegments) {
+          if (_looksLikeVideoId(segment)) return segment;
         }
       }
 
-      if (uri.host.contains('youtube.com')) {
-        final v = uri.queryParameters['v'];
-        if (v != null && _looksLikeVideoId(v)) return v;
+      if (host.contains('youtube.com') || host.contains('m.youtube.com')) {
+        final queryVideoId = uri.queryParameters['v'];
+        if (_looksLikeVideoId(queryVideoId)) return queryVideoId;
 
         final pathSegments = uri.pathSegments;
-        final embedIndex = pathSegments.indexOf('embed');
-        if (embedIndex >= 0 && embedIndex + 1 < pathSegments.length) {
-          final videoId = pathSegments[embedIndex + 1];
-          if (_looksLikeVideoId(videoId)) return videoId;
-        }
-
-        for (final type in <String>['shorts', 'live', 'v']) {
-          final index = pathSegments.indexOf(type);
+        for (final segment in <String>['embed', 'shorts', 'live', 'watch']) {
+          final index = pathSegments.indexOf(segment);
           if (index >= 0 && index + 1 < pathSegments.length) {
-            final videoId = pathSegments[index + 1];
-            if (_looksLikeVideoId(videoId)) return videoId;
+            final candidate = pathSegments[index + 1];
+            if (_looksLikeVideoId(candidate)) return candidate;
           }
         }
       }
     }
 
     final fallbackRegExp = RegExp(
-      r'(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|shorts\/|live\/)|watch\?[^>]*[?&]v=)([a-zA-Z0-9_-]{11})',
+      "(?:https?://)?(?:www\\.|m\\.)?(?:youtube\\.com/[^\\s\"']*?[?&]v=|youtube\\.com/(?:embed|shorts|live)/|youtu\\.be/)([a-zA-Z0-9_-]{11})",
       caseSensitive: false,
     );
     final match = fallbackRegExp.firstMatch(trimmed);
@@ -49,7 +46,17 @@ class YouTubeUtils {
     return null;
   }
 
-  static bool _looksLikeVideoId(String value) {
-    return RegExp(r'^[a-zA-Z0-9_-]{11}$').hasMatch(value.trim());
+  static String? _extractDirectVideoId(String value) {
+    final candidate = value.trim();
+    if (_looksLikeVideoId(candidate)) return candidate;
+
+    final shorthand = candidate.replaceFirst(RegExp(r'^(?:https?:\/\/)?(?:www\.|m\.)?youtu\.be\/'), '');
+    if (_looksLikeVideoId(shorthand)) return shorthand;
+
+    return null;
+  }
+
+  static bool _looksLikeVideoId(String? value) {
+    return value != null && RegExp(r'^[a-zA-Z0-9_-]{11}$').hasMatch(value.trim());
   }
 }

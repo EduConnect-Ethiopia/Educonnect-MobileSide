@@ -220,46 +220,70 @@ class SequentialLessonController implements LessonPlayerController {
           Text(material.description, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
         ],
-        GestureDetector(
-          onTap: () {
-            showDialog(
-              context: context,
-              builder: (context) => Dialog(
-                backgroundColor: Colors.transparent,
-                insetPadding: EdgeInsets.zero,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    InteractiveViewer(
-                      panEnabled: true,
-                      minScale: 0.5,
-                      maxScale: 4,
-                      child: AuthenticatedImage(
-                        imageUrl: material.fullContentUrl,
-                        fit: BoxFit.contain,
-                      ),
+        FutureBuilder<String?>(
+          future: resolveMaterialAccessUrl(material.id),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Container(
+                width: double.infinity,
+                height: 200,
+                color: Colors.grey[200],
+                child: const Center(child: CircularProgressIndicator()),
+              );
+            }
+            if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+              return Container(
+                width: double.infinity,
+                height: 200,
+                color: Colors.grey[300],
+                child: const Center(child: Text('Failed to load image.')),
+              );
+            }
+
+            final imageUrl = snapshot.data!;
+
+            return GestureDetector(
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => Dialog(
+                    backgroundColor: Colors.transparent,
+                    insetPadding: EdgeInsets.zero,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        InteractiveViewer(
+                          panEnabled: true,
+                          minScale: 0.5,
+                          maxScale: 4,
+                          child: AuthenticatedImage(
+                            imageUrl: imageUrl,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        Positioned(
+                          top: 40,
+                          right: 20,
+                          child: IconButton(
+                            icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                        ),
+                      ],
                     ),
-                    Positioned(
-                      top: 40,
-                      right: 20,
-                      child: IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white, size: 30),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                    ),
-                  ],
+                  ),
+                );
+              },
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: AuthenticatedImage(
+                  imageUrl: imageUrl,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
                 ),
               ),
             );
           },
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: AuthenticatedImage(
-              imageUrl: material.fullContentUrl,
-              fit: BoxFit.cover,
-              width: double.infinity,
-            ),
-          ),
         ),
       ],
     );

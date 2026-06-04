@@ -19,14 +19,15 @@ class AssessmentController {
 
   int get currentIndex => _currentIndex;
 
-  Future<void> ensureStarted() async {
-    if (_started) return;
+  Future<DateTime?> ensureStarted() async {
+    if (_started) return null;
     try {
-      await ref.read(assessmentRepositoryProvider).startAssessment(assessment.id);
+      final startedAt = await ref.read(assessmentRepositoryProvider).startAssessment(assessment.id);
+      _started = true;
+      return startedAt;
     } catch (e) {
       rethrow;
     }
-    _started = true;
   }
 
   void saveAnswer(int index, dynamic answer) {

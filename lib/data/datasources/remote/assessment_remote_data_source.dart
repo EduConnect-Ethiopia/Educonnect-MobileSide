@@ -7,7 +7,7 @@ abstract class AssessmentRemoteDataSource {
   Future<List<AssessmentSummaryDto>> getAssessmentsByCourse(String courseId);
   Future<AssessmentSummaryDto?> getAssessment(String assessmentId);
   Future<List<AssessmentQuestionDto>> getQuestions(String assessmentId);
-  Future<void> startAssessment(String assessmentId);
+  Future<DateTime?> startAssessment(String assessmentId);
   Future<SubmissionResultDto> submitAssessment({
     required String assessmentId,
     required Map<String, String> answers,

@@ -33,10 +33,11 @@ class AppEnvironment {
     // 1. First check if URL is set in .env file
     final envUrl = _env('API_BASE_URL');
     if (envUrl != null && envUrl.isNotEmpty) {
+      final normalizedUrl = normalizeApiBaseUrl(envUrl);
       if (kDebugMode) {
-        print('[AppEnvironment] Using API URL from .env: $envUrl');
+        print('[AppEnvironment] Using API URL from .env: $normalizedUrl');
       }
-      return envUrl;
+      return normalizedUrl;
     }
 
     // 2. Return production URL if in prod flavor
@@ -60,6 +61,14 @@ class AppEnvironment {
       print('[AppEnvironment] Platform: ${kIsWeb ? 'Web' : Platform.operatingSystem}, API URL: $url');
     }
     return url;
+  }
+
+  static String normalizeApiBaseUrl(String rawUrl) {
+    final trimmed = rawUrl.trim().replaceAll(RegExp(r'\s+'), '');
+    if (trimmed.isEmpty) {
+      return 'http://localhost:5001';
+    }
+    return trimmed;
   }
 
   static Duration get connectTimeout {

@@ -32,6 +32,15 @@ class CourseModel {
 
   factory CourseModel.fromJson(JsonMap json) {
     final data = findMap(json, const ['data', 'result']) ?? json;
+    final rawThumbnail = findString(data, const [
+      'thumbnailUrl',
+      'thumbnail',
+      'imageUrl',
+      'image',
+      'coverImage',
+      'thumb',
+    ]);
+    final thumbnailUrl = _normalizeContentUrl(rawThumbnail, 2);
     return CourseModel(
       courseId: findString(data, const ['courseId', 'id']) ?? '',
       title: findString(data, const ['title']) ?? 'Untitled course',
@@ -40,6 +49,7 @@ class CourseModel {
       mode: _readInt(data['mode']) ?? BackendEnumValues.modeSelfPaced,
       price: _readDouble(data['price']) ?? 0,
       courseStatus: _readInt(data['courseStatus']) ?? BackendEnumValues.courseStatusDraft,
+      thumbnailUrl: thumbnailUrl,
       createdAt: parseDateTime(data['createdAt']),
       updatedAt: _parseBackendDate(data['updatedAt']),
     );
