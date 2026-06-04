@@ -6,9 +6,7 @@ import '../../../domain/entities/assessment.dart';
 import '../../../domain/entities/course.dart';
 import '../../../domain/entities/course_content.dart';
 import '../../../domain/entities/course_session.dart';
-import '../../../domain/entities/lesson_play_type.dart';
 import '../../controllers/lesson_player_controller.dart';
-import '../../providers/assessment_provider.dart';
 import '../../providers/course_detail_provider.dart';
 import '../../providers/progress_provider.dart';
 import '../../widgets/course_navigation_drawer.dart';
@@ -124,19 +122,6 @@ class _CoursePlayerScreenState extends ConsumerState<CoursePlayerScreen> {
         },
       );
     });
-  }
-
-  Assessment? _pickAssessmentForLesson(
-    List<Assessment> assessments,
-    String lessonId,
-  ) {
-    if (assessments.isEmpty) return null;
-    for (final assessment in assessments) {
-      if (assessment.lessonId == lessonId) {
-        return assessment;
-      }
-    }
-    return assessments.first;
   }
 
   Future<void> _markLessonComplete() async {

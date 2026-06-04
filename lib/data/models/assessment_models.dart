@@ -286,15 +286,21 @@ class SubmissionResultDto {
     final scoreValue = (score ?? 0).round();
     final max = maxScore.round();
     final percentage = max == 0 ? 0.0 : (scoreValue / max) * 100;
+    
+    final isPending = score == null;
+
     return AssessmentResult(
       score: scoreValue,
       maxScore: max,
-      passed: percentage >= assessmentPassingPercent,
+      passed: isPending ? false : percentage >= assessmentPassingPercent,
+      isPendingGrade: isPending,
       feedback: feedback.isNotEmpty
           ? feedback
-          : (percentage >= assessmentPassingPercent
-              ? 'Great work! You passed this assessment.'
-              : 'Keep studying and try again when ready.'),
+          : (isPending
+              ? 'Your submission has been received and is pending manual grading.'
+              : (percentage >= assessmentPassingPercent
+                  ? 'Great work! You passed this assessment.'
+                  : 'Keep studying and try again when ready.')),
       attemptNumber: attemptNumber,
     );
   }

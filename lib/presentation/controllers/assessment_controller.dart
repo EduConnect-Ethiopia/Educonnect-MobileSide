@@ -21,7 +21,18 @@ class AssessmentController {
 
   Future<void> ensureStarted() async {
     if (_started) return;
-    await ref.read(assessmentRepositoryProvider).startAssessment(assessment.id);
+    try {
+      await ref.read(assessmentRepositoryProvider).startAssessment(assessment.id);
+    } catch (e) {
+      final msg = e.toString().toLowerCase();
+      if (msg.contains('maximum attempts') || msg.contains('already started')) {
+        // Assume the user is resuming an in-progress attempt.
+        // The backend CreateAssessmentAsync throws if attempt limit is reached.
+        // If they already started it, we can just proceed and let them submit.
+      } else {
+        rethrow;
+      }
+    }
     _started = true;
   }
 

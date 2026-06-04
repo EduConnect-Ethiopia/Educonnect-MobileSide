@@ -74,6 +74,7 @@ class AssessmentResult {
     required this.passed,
     required this.feedback,
     this.attemptNumber = 1,
+    this.isPendingGrade = false,
   });
 
   final int score;
@@ -81,6 +82,7 @@ class AssessmentResult {
   final bool passed;
   final String feedback;
   final int attemptNumber;
+  final bool isPendingGrade;
 
   double get percentage =>
       maxScore == 0 ? 0 : (score / maxScore) * 100;

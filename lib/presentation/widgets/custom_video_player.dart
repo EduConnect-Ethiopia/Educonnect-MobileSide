@@ -246,9 +246,13 @@ class _CustomVideoPlayerWidgetState
     }
 
     final aspectRatio = vpc.value.aspectRatio;
-    return AspectRatio(
-      aspectRatio: aspectRatio > 0 ? aspectRatio : 16 / 9,
-      child: Chewie(controller: chewie),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return AspectRatio(
+          aspectRatio: aspectRatio > 0 ? aspectRatio : 16 / 9,
+          child: Chewie(controller: _chewie!),
+        );
+      }
     );
   }
 }

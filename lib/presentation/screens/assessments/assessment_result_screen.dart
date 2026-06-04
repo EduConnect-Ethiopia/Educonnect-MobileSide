@@ -23,25 +23,33 @@ class AssessmentResultScreen extends StatelessWidget {
         child: Column(
           children: [
             Icon(
-              result.passed ? Icons.check_circle : Icons.cancel,
+              result.isPendingGrade
+                  ? Icons.hourglass_empty
+                  : (result.passed ? Icons.check_circle : Icons.cancel),
               size: 80,
-              color: result.passed ? Colors.green : Colors.red,
+              color: result.isPendingGrade
+                  ? Colors.orange
+                  : (result.passed ? Colors.green : Colors.red),
             ),
             const SizedBox(height: 16),
             Text(
-              result.passed ? 'Passed!' : 'Not passed',
+              result.isPendingGrade
+                  ? 'Pending Grade'
+                  : (result.passed ? 'Passed!' : 'Not passed'),
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 8),
-            Text(
-              'Score: ${result.score} / ${result.maxScore} '
-              '(${result.percentage.toStringAsFixed(0)}%)',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 16),
+            if (!result.isPendingGrade)
+              Text(
+                'Score: ${result.score} / ${result.maxScore} '
+                '(${result.percentage.toStringAsFixed(0)}%)',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            if (!result.isPendingGrade)
+              const SizedBox(height: 16),
             Text(result.feedback, textAlign: TextAlign.center),
             const Spacer(),
-            if (!result.passed && result.attemptNumber < assessment.attemptLimit)
+            if (!result.isPendingGrade && !result.passed && result.attemptNumber < assessment.attemptLimit)
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(

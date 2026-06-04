@@ -97,7 +97,7 @@ class SequentialLessonController implements LessonPlayerController {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: sortedMaterials.length + 1,
-      separatorBuilder: (_, __) => const SizedBox(height: 24),
+      separatorBuilder: (context, index) => const SizedBox(height: 24),
       itemBuilder: (context, index) {
         if (index == sortedMaterials.length) {
            return const SizedBox(height: 48);
