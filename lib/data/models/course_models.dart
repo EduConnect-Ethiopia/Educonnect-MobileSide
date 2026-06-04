@@ -40,13 +40,15 @@ class CourseModel {
       'coverImage',
       'thumb',
     ]);
+    final rawMode = findString(data, const ['mode', 'courseMode', 'deliveryMode', 'format', 'type']);
+    final mode = _readMode(rawMode, data['mode']);
     final thumbnailUrl = _normalizeContentUrl(rawThumbnail, 2);
     return CourseModel(
       courseId: findString(data, const ['courseId', 'id']) ?? '',
       title: findString(data, const ['title']) ?? 'Untitled course',
       description: findString(data, const ['description']) ?? '',
       category: findString(data, const ['category']) ?? 'General',
-      mode: _readInt(data['mode']) ?? BackendEnumValues.modeSelfPaced,
+      mode: mode,
       price: _readDouble(data['price']) ?? 0,
       courseStatus: _readInt(data['courseStatus']) ?? BackendEnumValues.courseStatusDraft,
       thumbnailUrl: thumbnailUrl,
@@ -419,6 +421,21 @@ double? _readDouble(Object? value) {
   if (value is num) return value.toDouble();
   if (value is String) return double.tryParse(value);
   return null;
+}
+
+int _readMode(String? rawMode, Object? fallbackValue) {
+  if (rawMode != null) {
+    final normalized = rawMode.trim().toLowerCase();
+    if (normalized.contains('instructor') || normalized.contains('live') || normalized.contains('virtual')) {
+      return BackendEnumValues.modeInstructorLed;
+    }
+    if (normalized.contains('self') || normalized.contains('onsite') || normalized.contains('recorded')) {
+      return BackendEnumValues.modeSelfPaced;
+    }
+  }
+
+  final parsed = _readInt(fallbackValue);
+  return parsed ?? BackendEnumValues.modeSelfPaced;
 }
 
 int _readMaterialType(JsonMap data) {

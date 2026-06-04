@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Material;
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/utils/meeting_url_utils.dart';
 import '../../domain/entities/course_content.dart';
 import '../../domain/entities/course_session.dart';
 import '../widgets/html_content_widget.dart';
@@ -50,9 +51,12 @@ class LiveLessonController implements LessonPlayerController {
   }
 
   Future<void> _joinLiveClass() async {
-    final url = session.meetingUrl;
-    if (url.isEmpty) return;
-    final uri = Uri.parse(url);
+    final normalizedUrl = normalizeMeetingUrl(session.meetingUrl);
+    if (normalizedUrl.isEmpty) return;
+
+    final uri = Uri.tryParse(normalizedUrl);
+    if (uri == null) return;
+
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }

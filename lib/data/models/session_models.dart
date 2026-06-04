@@ -34,7 +34,7 @@ class CourseSessionModel {
       startTime: parseDateTime(data['startTime']) ?? DateTime.now(),
       endTime: parseDateTime(data['endTime']) ?? DateTime.now().add(const Duration(hours: 1)),
       meetingUrl: findString(data, const ['meetingUrl', 'url']) ?? '',
-      status: _readInt(data['status']) ?? 0,
+      status: _readSessionStatus(data['status']) ?? 0,
       createdAt: parseDateTime(data['createdAt']),
       updatedAt: parseDateTime(data['updatedAt']),
     );
@@ -51,6 +51,16 @@ class CourseSessionModel {
       status: status,
     );
   }
+}
+
+int? _readSessionStatus(Object? value) {
+  if (value is String) {
+    final normalized = value.trim().toLowerCase();
+    if (normalized.contains('cancel')) return 3;
+    if (normalized.contains('complete') || normalized.contains('done')) return 2;
+    if (normalized.contains('live') || normalized.contains('inprogress') || normalized.contains('ongoing')) return 1;
+  }
+  return _readInt(value);
 }
 
 int? _readInt(Object? value) {

@@ -1,5 +1,6 @@
 import 'package:educonnect_mobile/core/constants/backend_enum_values.dart';
 import 'package:educonnect_mobile/data/models/course_models.dart';
+import 'package:educonnect_mobile/data/models/session_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -23,6 +24,37 @@ void main() {
     expect(course.courseStatus, BackendEnumValues.courseStatusPublished);
     expect(course.updatedAt, isNull);
     expect(course.toEntity().isPublished, isTrue);
+  });
+
+  test('course model parses instructor-led mode from string values', () {
+    final course = CourseModel.fromJson({
+      'courseId': 'course-2',
+      'title': 'Live Bootcamp',
+      'description': 'Instructor-led',
+      'category': 'Technology',
+      'mode': 'InstructorLed',
+      'price': 0,
+      'courseStatus': BackendEnumValues.courseStatusPublished,
+    });
+
+    expect(course.mode, BackendEnumValues.modeInstructorLed);
+    expect(course.toEntity().isInstructorLed, isTrue);
+  });
+
+  test('session model parses string status values for live/upcoming cards', () {
+    final now = DateTime.now().toUtc();
+    final session = CourseSessionModel.fromJson({
+      'sessionId': 'session-1',
+      'courseId': 'course-2',
+      'title': 'Live Zoom Session',
+      'startTime': now.subtract(const Duration(minutes: 5)).toIso8601String(),
+      'endTime': now.add(const Duration(hours: 1)).toIso8601String(),
+      'meetingUrl': 'https://zoom.us/j/123',
+      'status': 'Live',
+    }).toEntity();
+
+    expect(session.status, 1);
+    expect(session.statusText, 'Live Now');
   });
 
   test('enrollment model parses integer status values', () {

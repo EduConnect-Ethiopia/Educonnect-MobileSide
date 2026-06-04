@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/utils/meeting_url_utils.dart';
 
 import '../../domain/entities/course.dart';
 import '../../domain/entities/course_content.dart';
@@ -115,9 +116,11 @@ class CourseDetailScreen extends ConsumerWidget {
                 ),
                 error: (error, stackTrace) => const SizedBox.shrink(),
                 data: (sessions) {
-                  if (hasAccess &&
-                      course.isInstructorLed &&
-                      sessions.isNotEmpty) {
+                  final shouldShowSessions =
+                      sessions.isNotEmpty &&
+                      (course.isInstructorLed || sessions.any((session) => session.meetingUrl.isNotEmpty));
+
+                  if (shouldShowSessions) {
                     return Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
@@ -640,8 +643,12 @@ class _SessionCard extends StatelessWidget {
   }
 
   Future<void> _openMeetingUrl(String meetingUrl) async {
-    if (meetingUrl.isEmpty) return;
-    final uri = Uri.parse(meetingUrl);
+    final normalizedUrl = normalizeMeetingUrl(meetingUrl);
+    if (normalizedUrl.isEmpty) return;
+
+    final uri = Uri.tryParse(normalizedUrl);
+    if (uri == null) return;
+
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
