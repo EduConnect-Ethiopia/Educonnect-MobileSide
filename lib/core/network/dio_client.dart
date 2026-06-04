@@ -12,11 +12,14 @@ class DioClient {
   static Dio create({
     required TokenStorage tokenStorage,
     required VoidCallback onSessionExpired,
+    String? baseUrlOverride,
   }) {
-    final apiBaseUrl = AppEnvironment.apiBaseUrl;
-    
+    final apiBaseUrl = (baseUrlOverride != null && baseUrlOverride.trim().isNotEmpty)
+        ? baseUrlOverride.trim()
+        : AppEnvironment.apiBaseUrl;
+
     if (kDebugMode) {
-      print('[DioClient] Initializing Dio with base URL: $apiBaseUrl');
+      print('[DioClient] Initializing Dio with base URL: $apiBaseUrl (override=${baseUrlOverride != null})');
     }
 
     final baseOptions = BaseOptions(
@@ -41,6 +44,7 @@ class DioClient {
     final interceptor = JwtAuthInterceptor(
       tokenStorage: tokenStorage,
       onSessionExpired: onSessionExpired,
+      apiBaseUrlOverride: baseUrlOverride,
     );
     dio.interceptors.add(interceptor);
 

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/di/app_providers.dart';
 import '../../core/utils/youtube_utils.dart';
@@ -42,6 +43,7 @@ class _YouTubePlayerWidgetState extends ConsumerState<YouTubePlayerWidget> {
     super.initState();
     _videoId = YouTubeUtils.extractVideoId(widget.videoUrl);
     if (_videoId != null) {
+      debugPrint('[YouTube] extracted id=$_videoId from ${widget.videoUrl}');
       _initPlayer(_videoId!);
     } else {
       setState(() {
@@ -99,6 +101,8 @@ class _YouTubePlayerWidgetState extends ConsumerState<YouTubePlayerWidget> {
         _completedFired = false;
         _initError = null;
       });
+
+      debugPrint('[YouTube] player initialized for id=$_videoId');
 
       _startProgressTracking(controller);
     } on Object catch (error) {
@@ -181,6 +185,25 @@ class _YouTubePlayerWidgetState extends ConsumerState<YouTubePlayerWidget> {
                   _initError ?? 'Invalid YouTube URL:\n${widget.videoUrl}',
                   style: const TextStyle(color: Colors.white70),
                   textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.open_in_browser),
+                      label: const Text('Open externally'),
+                      onPressed: () async {
+                        final uri = _videoId != null
+                            ? Uri.parse('https://youtu.be/$_videoId')
+                            : Uri.tryParse(widget.videoUrl);
+                        if (uri != null && await canLaunchUrl(uri)) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        }
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),

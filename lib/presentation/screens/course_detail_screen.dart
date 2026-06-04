@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/config/app_environment.dart';
+import '../../core/di/app_providers.dart';
 import '../../core/utils/meeting_url_utils.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 
 import '../../domain/entities/course.dart';
 import '../../domain/entities/course_content.dart';
@@ -37,7 +40,65 @@ class CourseDetailScreen extends ConsumerWidget {
         enrollmentState.enrolledCourseIds.contains(course.id);
 
     return Scaffold(
-      appBar: AppBar(title: Text(course.title)),
+      appBar: AppBar(
+        title: Text(course.title),
+        actions: [
+          if (kDebugMode)
+            IconButton(
+              tooltip: 'Dev: Set API Base URL',
+              icon: const Icon(Icons.settings_ethernet),
+              onPressed: () async {
+                final prefs = ref.read(sharedPreferencesProvider);
+                final current = prefs.getString('API_BASE_URL_OVERRIDE') ?? AppEnvironment.apiBaseUrl;
+                final controller = TextEditingController(text: current);
+                await showDialog<void>(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: const Text('API Base URL (debug)'),
+                      content: TextField(
+                        controller: controller,
+                        decoration: const InputDecoration(
+                          labelText: 'Base URL (leave empty to use .env/default)',
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Cancel'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () async {
+                            final value = controller.text.trim();
+                            if (value.isEmpty) {
+                              await prefs.remove('API_BASE_URL_OVERRIDE');
+                            } else {
+                              await prefs.setString('API_BASE_URL_OVERRIDE', value);
+                            }
+                            // Invalidate Dio so providers pick up the new base URL
+                            ref.invalidate(dioProvider);
+                            // Optionally invalidate common remote providers that depend on dio
+                            ref.invalidate(courseRemoteDataSourceProvider);
+                            ref.invalidate(fileAccessRemoteDataSourceProvider);
+                            ref.invalidate(sessionRemoteDataSourceProvider);
+                            ref.invalidate(authRemoteDataSourceProvider);
+                            ref.invalidate(assessmentRemoteDataSourceProvider);
+                            Navigator.of(context).pop();
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('API base URL saved. Restart app if needed.')),
+                            );
+                          },
+                          child: const Text('Save'),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+            ),
+        ],
+      ),
       body: contentAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(

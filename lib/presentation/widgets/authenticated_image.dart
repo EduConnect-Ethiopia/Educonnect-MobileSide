@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/config/app_environment.dart';
 import '../../../core/di/app_providers.dart';
 
 class AuthenticatedImage extends ConsumerWidget {
@@ -21,8 +22,14 @@ class AuthenticatedImage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final token = ref.watch(tokenStorageProvider).accessToken;
+    final prefs = ref.watch(sharedPreferencesProvider);
+    final override = prefs.getString('API_BASE_URL_OVERRIDE');
+    final apiHost = Uri.tryParse(override ?? AppEnvironment.apiBaseUrl)?.host;
+    final imageHost = Uri.tryParse(imageUrl)?.host;
+
     final headers = <String, String>{};
-    if (token != null && token.isNotEmpty) {
+    // Only attach Authorization for images served from the API host (not external CDN/presigned URLs)
+    if (token != null && token.isNotEmpty && apiHost != null && imageHost == apiHost) {
       headers['Authorization'] = 'Bearer $token';
     }
 

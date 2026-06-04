@@ -55,11 +55,14 @@ final tokenStorageProvider = Provider<TokenStorage>((ref) {
 });
 
 final dioProvider = Provider<Dio>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  final override = prefs.getString('API_BASE_URL_OVERRIDE');
   return DioClient.create(
     tokenStorage: ref.watch(tokenStorageProvider),
     onSessionExpired: () {
       ref.read(authControllerProvider.notifier).markSessionExpired();
     },
+    baseUrlOverride: override,
   );
 });
 
