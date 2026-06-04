@@ -140,11 +140,14 @@ class _YouTubePlayerWidgetState extends ConsumerState<YouTubePlayerWidget> {
   @override
   void didUpdateWidget(YouTubePlayerWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Reinitialize if the URL changed
-    if (oldWidget.videoUrl != widget.videoUrl) {
+
+    final urlChanged = oldWidget.videoUrl != widget.videoUrl;
+    final positionChanged = oldWidget.initialPositionSeconds != widget.initialPositionSeconds;
+
+    if (urlChanged || positionChanged) {
       _completedFired = false;
       final newVideoId = YouTubeUtils.extractVideoId(widget.videoUrl);
-      if (newVideoId != null && newVideoId != _videoId) {
+      if (newVideoId != null) {
         _videoId = newVideoId;
         _initPlayer(newVideoId);
       }

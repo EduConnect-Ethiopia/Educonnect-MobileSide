@@ -57,8 +57,13 @@ class DioAssessmentRemoteDataSource implements AssessmentRemoteDataSource {
   }
 
   @override
-  Future<void> startAssessment(String assessmentId) async {
-    await _dio.post<dynamic>(ApiEndpoints.startAssessment(assessmentId), data: {});
+  Future<DateTime?> startAssessment(String assessmentId) async {
+    final response = await _dio.post<dynamic>(ApiEndpoints.startAssessment(assessmentId), data: {});
+    final map = castJsonMap(response.data);
+    if (map['startedAt'] != null) {
+      return DateTime.tryParse(map['startedAt'].toString())?.toLocal();
+    }
+    return null;
   }
 
   @override

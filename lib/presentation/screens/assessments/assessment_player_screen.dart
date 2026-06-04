@@ -208,12 +208,12 @@ class _AssessmentPlayerScreenState
 
     return PopScope(
       canPop: _canPop,
-      onPopInvoked: (didPop) async {
+      onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         if (_loadError != null || _loading || !hasQuestions) {
           setState(() => _canPop = true);
           Future.delayed(Duration.zero, () {
-            if (mounted) Navigator.pop(context);
+            if (context.mounted) Navigator.pop(context);
           });
           return;
         }
@@ -237,7 +237,7 @@ class _AssessmentPlayerScreenState
         if (confirm == true && mounted) {
           setState(() => _canPop = true);
           Future.delayed(Duration.zero, () {
-            if (mounted) Navigator.pop(context);
+            if (context.mounted) Navigator.pop(context);
           });
         }
       },
@@ -249,7 +249,7 @@ class _AssessmentPlayerScreenState
               if (_loading || _loadError != null || !hasQuestions) {
                 setState(() => _canPop = true);
                 Future.delayed(Duration.zero, () {
-                  if (mounted) Navigator.of(context).pop();
+                  if (context.mounted) Navigator.maybePop(context);
                 });
                 return;
               }

@@ -38,6 +38,18 @@ class _CustomVideoPlayerWidgetState
     _initializePlayer();
   }
 
+  @override
+  void didUpdateWidget(CustomVideoPlayerWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final urlChanged = oldWidget.videoUrl != widget.videoUrl;
+    final positionChanged = oldWidget.initialPositionSeconds != widget.initialPositionSeconds;
+
+    if (urlChanged || positionChanged) {
+      _initializePlayer();
+    }
+  }
+
   Future<void> _initializePlayer() async {
     if (!mounted) return;
     setState(() {

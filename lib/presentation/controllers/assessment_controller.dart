@@ -24,14 +24,7 @@ class AssessmentController {
     try {
       await ref.read(assessmentRepositoryProvider).startAssessment(assessment.id);
     } catch (e) {
-      final msg = e.toString().toLowerCase();
-      if (msg.contains('maximum attempts') || msg.contains('already started')) {
-        // Assume the user is resuming an in-progress attempt.
-        // The backend CreateAssessmentAsync throws if attempt limit is reached.
-        // If they already started it, we can just proceed and let them submit.
-      } else {
-        rethrow;
-      }
+      rethrow;
     }
     _started = true;
   }
@@ -85,7 +78,8 @@ class AssessmentController {
         return answer?.toString() ?? '';
       case QuestionType.multipleSelect:
         if (answer is List<int>) {
-          return answer
+          final sorted = List<int>.from(answer)..sort();
+          return sorted
               .where((i) => i >= 0 && i < question.options.length)
               .map((i) => question.options[i])
               .join('|');

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/di/app_providers.dart';
-import '../../../domain/entities/assessment.dart';
 import '../../../domain/entities/course.dart';
 import '../../../domain/entities/course_content.dart';
 import '../../../domain/entities/course_session.dart';
@@ -57,6 +56,8 @@ class _CoursePlayerScreenState extends ConsumerState<CoursePlayerScreen> {
     }
     
     _videoPositions = positions;
+
+    ref.invalidate(courseContentAsyncProvider(widget.course.id));
 
     final content = await ref.read(
       courseContentAsyncProvider(widget.course.id).future,
@@ -136,6 +137,7 @@ class _CoursePlayerScreenState extends ConsumerState<CoursePlayerScreen> {
 
   void _selectLesson(Lesson lesson) {
     setState(() => _currentLesson = lesson);
+    ref.invalidate(courseContentAsyncProvider(widget.course.id));
     ref.read(courseContentAsyncProvider(widget.course.id).future).then(
       (content) {
         if (mounted) _initPlayer(content);
